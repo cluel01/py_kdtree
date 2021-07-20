@@ -29,4 +29,4 @@ Licence
 Authors
 -------
 
-`py-kdtree` was written by `Christian Lülf <christian.luelf@uni-muenster.de>`_.
+`py_kdtree` was written by `Christian Lülf <christian.luelf@uni-muenster.de>`_.
