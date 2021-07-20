@@ -1,8 +1,8 @@
 py_kdtree
 =========
 
-.. image:: https://img.shields.io/pypi/v/py-kdtree.svg
-    :target: https://pypi.python.org/pypi/py-kdtree
+.. image:: https://img.shields.io/pypi/v/py_kdtree.svg
+    :target: https://pypi.python.org/pypi/py_kdtree
     :alt: Latest PyPI version
 
 .. image:: https://travis-ci.org/kragniz/cookiecutter-pypackage-minimal.png
