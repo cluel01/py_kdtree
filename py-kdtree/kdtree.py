@@ -120,17 +120,20 @@ class KDTree():
                 indices.extend(list(node.indices))
                 points.extend(node._get_pts())
                 return indices,points
-            else:
+            #intersects
+            elif not ( np.any(node.bounds[:,0] > maxs) ) or ( np.any(node.bounds[:,1] < mins )):
                 pts = node._get_pts()
                 mask = (np.all(pts >= mins,axis=1) ) &  (np.all(pts <= maxs, axis=1))
                 indices.extend(list(node.indices[mask]))
                 points.extend(pts[mask])
                 return indices,points
+            else:
+                return indices,points
 
         l_bounds = node.left.bounds 
         r_bounds = node.right.bounds
 
-        #if intersects
+        #if at least intersects
         if not ( np.any(l_bounds[:,0] > maxs) ) or ( np.any(l_bounds[:,1] < mins )):
             self._recursive_search(node.left,mins,maxs,indices,points)
 
