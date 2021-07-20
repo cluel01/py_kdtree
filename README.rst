@@ -1,4 +1,4 @@
-py-kdtree
+py_kdtree
 =========
 
 .. image:: https://img.shields.io/pypi/v/py-kdtree.svg
