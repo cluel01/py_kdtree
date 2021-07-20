@@ -14,7 +14,7 @@ def read(filename):
 
 
 setup(
-    name="py-kdtree",
+    name="py_kdtree",
     version="0.1.0",
     url="https://github.com/cluel01/py-kdtree",
     license='MIT',
