@@ -8,41 +8,7 @@ import pickle
 # will lead to the same "random" set when 
 # exexuting the cell mulitple times
 np.random.seed(42)
-
-class Node():
-    """ Helper class that reprents
-    a single node of a k-d tree.
-    """
-    
-    def __init__(self, left, right, points=None,bounds=None,dtype=None,path=None):
-        self.left = left
-        self.right = right
-        self.bounds = bounds
-        self.dtype = dtype
-        self.path = path
-        self.isLeaf = False
-
-        filename = None
-        #if leaf
-        if points is not None:
-            self.shape = points.shape
-            filename = os.path.join(path, "mem"+str(time.time())+".mmap")
-            fp = np.memmap(filename, dtype=dtype, mode='w+', shape=points.shape)
-            fp[:] = points[:]
-            fp.flush()
-
-            self.isLeaf = True
-
-        self.filename = filename
-
-    def _get_pts(self,mask=None):
-        assert self.isLeaf, "Node needs to be a leaf!"
-        
-        fp = np.memmap(self.filename, dtype=self.dtype, mode='r', shape=self.shape) 
-        if mask is not None:
-            fp = fp[mask]
-        return fp
-            
+          
 
 class KDTree():
     def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None):
@@ -63,7 +29,7 @@ class KDTree():
         self.dtype = dtype
         self.leaf_size = leaf_size
 
-        self._root = None
+        self.tree = None
         
         if model_file is None:
             self.model_file = os.path.join(path,"tree.pkl")
@@ -88,22 +54,38 @@ class KDTree():
                 os.remove(os.path.join(self.tmp_path, f))
 
         I = np.array(range(len(X)))
+
+        d = self._calc_depth(len(X))
+        n_nodes = 2**(d+1)-1
+        self.tree = np.empty((n_nodes,self._dim,2))
+        self._lsize_dict = {}
+
         #points = X.copy()
         start = time.time()
-        self._root = self._build_tree(X, I)
+        self._build_tree(X, I)
         end = time.time()
         self._save()
         print(f"INFO: Building tree took {end-start} seconds")
 
 
-    def _build_tree(self, pts, indices, depth=0,bounds=None):
-        if bounds is None:
-            bounds = np.array([[-np.inf,np.inf]]*self._dim)
+    def _build_tree(self, pts, indices, depth=0,idx=0):
+        #if root
+        if idx == 0: 
+            self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
+
+        bounds = self.tree[idx]
 
         if len(pts) <= self.leaf_size: 
             pts = np.c_[indices,pts]
-            return Node(left=None, right=None, points=pts,bounds=bounds,dtype=self.dtype,
-                        path=self.tmp_path)
+
+            shape = pts.shape
+            self._lsize_dict[idx] = shape[0]
+            filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
+            fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=shape)
+            fp[:] = pts[:]
+            fp.flush()
+
+            return 
         
         axis = depth % self._dim
         
@@ -118,37 +100,45 @@ class KDTree():
         l_bounds[axis,1] = median
         r_bounds[axis,0] = median
 
-        lefttree = self._build_tree(pts[:midx,:], indices[:midx], depth+1,l_bounds)
-        righttree = self._build_tree(pts[midx:,:], indices[midx:], depth+1,r_bounds)
+        l_idx,r_idx = self._get_child_idx(idx)
 
-        return Node(left=lefttree, right=righttree,bounds=bounds)
+        self.tree[l_idx] = l_bounds
+        self.tree[r_idx] = r_bounds
+
+        self._build_tree(pts[:midx,:], indices[:midx], depth+1,l_idx)
+        self._build_tree(pts[midx:,:], indices[midx:], depth+1,r_idx)
+
 
     def query_box(self,mins,maxs):
-        if self._root is None:  
+        if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
         start = time.time()
-        indices,points = self._recursive_search(self._root,mins,maxs)
+        indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
         print(f"INFO: Box search took: {end-start} seconds")
         return indices,np.array(points)
 
-    def _recursive_search(self,node,mins,maxs,indices=None,points=None):
+    def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
             #points = np.empty((0,self._dim))
             points = []
         if indices is None:
             indices = []
-        if (node.left == None and node.right==None):
+
+        l_idx,r_idx = self._get_child_idx(idx)
+        
+        if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
             # is partition fully contained by box
-            if (np.all(node.bounds[:,0] >= mins)) and (np.all(node.bounds[:,1] <= maxs)):
-                pts = node._get_pts()
+            bounds = self.tree[idx]
+            if (np.all(bounds[:,0] >= mins)) and (np.all(bounds[:,1] <= maxs)):
+                pts = self._get_pts(idx)
                 indices.extend(list(pts[:,0].astype(np.int64)))
                 points.extend(pts[:,1:])
                 return indices,points
             #intersects
-            elif not ( np.any(node.bounds[:,0] > maxs) ) or ( np.any(node.bounds[:,1] < mins )):
-                pts = node._get_pts()
+            elif not ( np.any(bounds[:,0] > maxs) ) or ( np.any(bounds[:,1] < mins )):
+                pts = self._get_pts(idx)
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
                 indices.extend(list(pts[:,0][mask].astype(np.int64)))
                 points.extend(pts[:,1:][mask])
@@ -156,15 +146,15 @@ class KDTree():
             else:
                 return indices,points
 
-        l_bounds = node.left.bounds 
-        r_bounds = node.right.bounds
+        l_bounds = self.tree[l_idx]
+        r_bounds = self.tree[r_idx]
 
         #if at least intersects
         if not ( np.any(l_bounds[:,0] > maxs) ) or ( np.any(l_bounds[:,1] < mins )):
-            self._recursive_search(node.left,mins,maxs,indices,points)
+            self._recursive_search(l_idx,mins,maxs,indices,points)
 
         if not ( np.any(r_bounds[:,0] > maxs) ) or ( np.any(r_bounds[:,1] < mins )):
-            self._recursive_search(node.right,mins,maxs,indices,points)
+            self._recursive_search(r_idx,mins,maxs,indices,points)
 
         return indices,points
 
@@ -178,6 +168,22 @@ class KDTree():
         with open(self.model_file, 'wb') as file:
             pickle.dump(self, file) 
         print(f"Model was saved under {self.model_file}")
+
+    def _calc_depth(self,n):
+        d = 0
+        while n/2**d > self.leaf_size:
+            d += 1
+        return d
+
+    def _get_pts(self,idx):
+        filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
+        shape = (self._lsize_dict[idx],self._dim+1)
+        fp = np.memmap(filename, dtype=self.dtype, mode='r', shape=shape) 
+        return fp
+
+    @staticmethod
+    def _get_child_idx(i):
+        return (2*i)+1, (2*i)+2 
 
 
 
