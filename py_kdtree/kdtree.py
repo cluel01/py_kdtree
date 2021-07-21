@@ -45,12 +45,7 @@ class Node():
             
 
 class KDTree():
-    def __init__(self, X, path=None,dtype=None,leaf_size=30,model_file=None):
-        if dtype is None:
-            self.dtype = X.dtype 
-        else:
-            self.dtype = dtype
-
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None):
         if path is None:
             path = os.getcwd()
         
@@ -65,38 +60,39 @@ class KDTree():
         self.path = path
         self.tmp_path = tmp_path
 
+        self.dtype = dtype
         self.leaf_size = leaf_size
+
+        self._root = None
         
         if model_file is None:
             self.model_file = os.path.join(path,"tree.pkl")
             if os.path.isfile(self.model_file):
                 print(f"INFO: Load existing model under {self.model_file}")
                 self._load()
-                assert self._Xshape == X.shape, "Loaded model needs to have the same shape of input data!"
-                assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
-            else:
-                if len(os.listdir(tmp_path)) > 0:
-                    filelist = [ f for f in os.listdir(tmp_path) if f.endswith(".mmap") ]
-                    for f in filelist:
-                        os.remove(os.path.join(tmp_path, f))
-
-                self._fit(X)
-                self._save()
         else:
             self.model_file = os.path.join(path,model_file)
+            print(f"INFO: Load existing model under {self.model_file}")
             self._load()
-    
-    def _fit(self, X):
-        
-        self._dim = len(X[0])
-        self._Xshape = X.shape
 
+        assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
+    
+    def fit(self, X):
+        self._dim = len(X[0])
         
+        assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.np.dtype} does not match with Model dtype {self.np.dtype}"
+
+        if len(os.listdir(self.tmp_path)) > 0:
+            filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
+            for f in filelist:
+                os.remove(os.path.join(self.tmp_path, f))
+
         I = np.array(range(len(X)))
         #points = X.copy()
         start = time.time()
         self._root = self._build_tree(X, I)
         end = time.time()
+        self._save()
         print(f"INFO: Building tree took {end-start} seconds")
 
 
@@ -147,14 +143,14 @@ class KDTree():
             # is partition fully contained by box
             if (np.all(node.bounds[:,0] >= mins)) and (np.all(node.bounds[:,1] <= maxs)):
                 pts = node._get_pts()
-                indices.extend(list(pts[:,0].astype(int)))
+                indices.extend(list(pts[:,0].astype(np.int64)))
                 points.extend(pts[:,1:])
                 return indices,points
             #intersects
             elif not ( np.any(node.bounds[:,0] > maxs) ) or ( np.any(node.bounds[:,1] < mins )):
                 pts = node._get_pts()
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
-                indices.extend(list(pts[:,0][mask].astype(int)))
+                indices.extend(list(pts[:,0][mask].astype(np.int64)))
                 points.extend(pts[:,1:][mask])
                 return indices,points
             else:
