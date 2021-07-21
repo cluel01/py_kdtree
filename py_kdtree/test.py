@@ -2,9 +2,9 @@ import numpy as np
 from kdtree import KDTree
 np.random.seed(42)
 
-X = np.random.randn(100000,3)
+X = np.random.randn(10000,3)
 
-tree = KDTree(leaf_size=100,path="/home/cluelf/py_kdtree/run")
+tree = KDTree(leaf_size=1000,path="/home/cluelf/py_kdtree/run")
 
 if tree._root is None:
     tree.fit(X)

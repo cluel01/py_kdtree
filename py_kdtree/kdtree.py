@@ -80,7 +80,7 @@ class KDTree():
     def fit(self, X):
         self._dim = len(X[0])
         
-        assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.np.dtype} does not match with Model dtype {self.np.dtype}"
+        assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
         if len(os.listdir(self.tmp_path)) > 0:
             filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
