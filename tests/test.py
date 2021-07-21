@@ -1,5 +1,5 @@
 import numpy as np 
-from kdtree import KDTree
+from py_kdtree.kdtree import KDTree
 np.random.seed(42)
 
 X = np.random.randn(10000,3)
