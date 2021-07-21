@@ -48,19 +48,22 @@ class KDTree():
         
         assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
-        if len(os.listdir(self.tmp_path)) > 0:
-            filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
-            for f in filelist:
-                os.remove(os.path.join(self.tmp_path, f))
+        if self.tree is not None:
+            print("INFO: Model is already loaded, overwrite existing model!")
+            os.remove(self.model_file)
+            if len(os.listdir(self.tmp_path)) > 0:
+                filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
+                for f in filelist:
+                    os.remove(os.path.join(self.tmp_path, f))
 
         I = np.array(range(len(X)))
 
         d = self._calc_depth(len(X))
         n_nodes = 2**(d+1)-1
         self.tree = np.empty((n_nodes,self._dim,2))
+        #lsize dict required for different sizes of leaves when N cannot be evenly split
         self._lsize_dict = {}
 
-        #points = X.copy()
         start = time.time()
         self._build_tree(X, I)
         end = time.time()
