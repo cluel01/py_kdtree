@@ -2,6 +2,7 @@ import time
 import numpy as np
 import math
 import os
+import pickle
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -13,10 +14,9 @@ class Node():
     a single node of a k-d tree.
     """
     
-    def __init__(self, left, right, points=None, indices=None,bounds=None,dtype=None,path=None):
+    def __init__(self, left, right, points=None,bounds=None,dtype=None,path=None):
         self.left = left
         self.right = right
-        self.indices = indices
         self.bounds = bounds
         self.dtype = dtype
         self.path = path
@@ -45,42 +45,69 @@ class Node():
             
 
 class KDTree():
-    
-    def __init__(self, X, path=None,dtype=None,leaf_size=30):
+    def __init__(self, X, path=None,dtype=None,leaf_size=30,model_file=None):
         if dtype is None:
             self.dtype = X.dtype 
         else:
             self.dtype = dtype
 
         if path is None:
-            path = os.getcwd()+"/.mmap"
-            if not os.path.isdir(path):
-                os.makedirs(path)
+            path = os.getcwd()
+        
+        tmp_path = path +"/.mmap"
+        
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
-        if len(os.listdir(path)) > 0:
-            filelist = [ f for f in os.listdir(path) if f.endswith(".mmap") ]
-            for f in filelist:
-                os.remove(os.path.join(path, f))
+        if not os.path.isdir(tmp_path):
+            os.makedirs(tmp_path)
+
         self.path = path
+        self.tmp_path = tmp_path
 
         self.leaf_size = leaf_size
-        self._fit(X)    
+        
+        if model_file is None:
+            self.model_file = os.path.join(path,"tree.pkl")
+            if os.path.isfile(self.model_file):
+                print(f"INFO: Load existing model under {self.model_file}")
+                self._load()
+                assert self._Xshape == X.shape, "Loaded model needs to have the same shape of input data!"
+                assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
+            else:
+                if len(os.listdir(tmp_path)) > 0:
+                    filelist = [ f for f in os.listdir(tmp_path) if f.endswith(".mmap") ]
+                    for f in filelist:
+                        os.remove(os.path.join(tmp_path, f))
+
+                self._fit(X)
+                self._save()
+        else:
+            self.model_file = os.path.join(path,model_file)
+            self._load()
     
     def _fit(self, X):
         
         self._dim = len(X[0])
+        self._Xshape = X.shape
+
         
         I = np.array(range(len(X)))
         #points = X.copy()
+        start = time.time()
         self._root = self._build_tree(X, I)
+        end = time.time()
+        print(f"INFO: Building tree took {end-start} seconds")
+
 
     def _build_tree(self, pts, indices, depth=0,bounds=None):
         if bounds is None:
             bounds = np.array([[-np.inf,np.inf]]*self._dim)
 
         if len(pts) <= self.leaf_size: 
-            return Node(left=None, right=None, points=pts, indices=indices,bounds=bounds,dtype=self.dtype,
-                        path=self.path)
+            pts = np.c_[indices,pts]
+            return Node(left=None, right=None, points=pts,bounds=bounds,dtype=self.dtype,
+                        path=self.tmp_path)
         
         axis = depth % self._dim
         
@@ -110,22 +137,25 @@ class KDTree():
         print(f"INFO: Box search took: {end-start} seconds")
         return indices,np.array(points)
 
-    def _recursive_search(self,node,mins,maxs,indices=[],points=None):
+    def _recursive_search(self,node,mins,maxs,indices=None,points=None):
         if points is None:
             #points = np.empty((0,self._dim))
             points = []
+        if indices is None:
+            indices = []
         if (node.left == None and node.right==None):
             # is partition fully contained by box
             if (np.all(node.bounds[:,0] >= mins)) and (np.all(node.bounds[:,1] <= maxs)):
-                indices.extend(list(node.indices))
-                points.extend(node._get_pts())
+                pts = node._get_pts()
+                indices.extend(list(pts[:,0].astype(int)))
+                points.extend(pts[:,1:])
                 return indices,points
             #intersects
             elif not ( np.any(node.bounds[:,0] > maxs) ) or ( np.any(node.bounds[:,1] < mins )):
                 pts = node._get_pts()
-                mask = (np.all(pts >= mins,axis=1) ) &  (np.all(pts <= maxs, axis=1))
-                indices.extend(list(node.indices[mask]))
-                points.extend(pts[mask])
+                mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
+                indices.extend(list(pts[:,0][mask].astype(int)))
+                points.extend(pts[:,1:][mask])
                 return indices,points
             else:
                 return indices,points
@@ -142,8 +172,18 @@ class KDTree():
 
         return indices,points
 
+    def _load(self):
+        with open(self.model_file, 'rb') as file:
+            new = pickle.load(file)
+            #self = pickle.load(file)
+        self.__dict__.update(new.__dict__)
 
-        
+    def _save(self):
+        with open(self.model_file, 'wb') as file:
+            pickle.dump(self, file) 
+        print(f"Model was saved under {self.model_file}")
+
+
 
 
         
