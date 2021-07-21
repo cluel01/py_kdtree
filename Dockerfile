@@ -19,7 +19,7 @@ RUN chmod u+x /home/jovyan/start.sh
 WORKDIR /home/jovyan/work
 COPY requirements.txt .
 RUN pip install -r requirements.txt && rm requirements.txt
-COPY --chown=jovyan setup.py README.rst py_kdtree ./
+COPY --chown=jovyan . .
 RUN pip install -e .
 
 CMD ["/home/jovyan/start.sh"]
