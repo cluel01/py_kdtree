@@ -60,7 +60,7 @@ class KDTree():
 
         d = self._calc_depth(len(X))
         n_nodes = 2**(d+1)-1
-        self.tree = np.empty((n_nodes,self._dim,2))
+        self.tree = np.empty((n_nodes,self._dim,2),dtype=self.dtype)
         #lsize dict required for different sizes of leaves when N cannot be evenly split
         self._lsize_dict = {}
 
