@@ -33,11 +33,10 @@ class KDTree():
         
         if model_file is None:
             self.model_file = os.path.join(path,"tree.pkl")
-            if os.path.isfile(self.model_file):
-                print(f"INFO: Load existing model under {self.model_file}")
-                self._load()
         else:
             self.model_file = os.path.join(path,model_file)
+
+        if os.path.isfile(self.model_file):
             print(f"INFO: Load existing model under {self.model_file}")
             self._load()
 
@@ -58,8 +57,8 @@ class KDTree():
 
         I = np.array(range(len(X)))
 
-        d = self._calc_depth(len(X))
-        n_nodes = 2**(d+1)-1
+        self.depth = self._calc_depth(len(X))
+        n_nodes = 2**(self.depth+1)-1
         self.tree = np.empty((n_nodes,self._dim,2),dtype=self.dtype)
         #lsize dict required for different sizes of leaves when N cannot be evenly split
         self._lsize_dict = {}
@@ -164,7 +163,6 @@ class KDTree():
     def _load(self):
         with open(self.model_file, 'rb') as file:
             new = pickle.load(file)
-            #self = pickle.load(file)
         self.__dict__.update(new.__dict__)
 
     def _save(self):
