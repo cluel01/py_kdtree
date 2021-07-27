@@ -62,13 +62,16 @@ class KDTree():
         I = np.array(range(len(X)))
 
         self.depth = self._calc_depth(len(X))
-        n_nodes = 2**(self.depth+1)-1
+        #updated with the actual leaf size
+        self.leaf_size = int(np.ceil(len(X) / 2**self.depth))
+        self.n_leaves = 2**self.depth
+        self.n_nodes = 2**(self.depth+1)-1
         
         #TODO enable compression ?
-        self.tree = self.h5f.create_dataset("tree",shape=(n_nodes,self._dim,2),dtype=self.dtype)
+        self.tree = self.h5f.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype)
 
-        self.leaves = self.h5f.create_group("leaves")
-
+        self.leaves = self.h5f.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize)#,compression="gzip",shuffle=True)
+        
         start = time.time()
         self._build_tree(X, I)
         end = time.time()
@@ -88,8 +91,11 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=self.chunksize)#,compression="gzip",shuffle=True)
-            dset[:] = pts
+            if shape[0] != self.leaf_size:
+                nan = np.array([-1,*[-np.inf]*self._dim])
+                pts = np.vstack([pts,nan])
+            lf_idx = self.n_nodes-self.n_leaves-idx
+            self.leaves[lf_idx] = pts
             return 
         
         axis = depth % self._dim
@@ -126,7 +132,6 @@ class KDTree():
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
-            #points = np.empty((0,self._dim))
             points = []
         if indices is None:
             indices = []
@@ -138,15 +143,17 @@ class KDTree():
             # is partition fully contained by box
             bounds = self.tree[idx]
             if (np.all(bounds[:,0] >= mins)) and (np.all(bounds[:,1] <= maxs)):
-                pts = self._get_pts(idx)
-                indices.extend(list(pts[:,0].astype(np.int64)))
+                lf_idx = self.n_nodes-self.n_leaves-idx
+                pts = self.leaves[lf_idx]
+                indices.extend(pts[:,0].astype(np.int64))
                 points.extend(pts[:,1:])
                 return indices,points
             #intersects
             elif not ( np.any(bounds[:,0] > maxs) ) or ( np.any(bounds[:,1] < mins )):
-                pts = self._get_pts(idx)
+                lf_idx = self.n_nodes-self.n_leaves-idx
+                pts = self.leaves[lf_idx]
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
-                indices.extend(list(pts[:,0][mask].astype(np.int64)))
+                indices.extend(pts[:,0][mask].astype(np.int64))
                 points.extend(pts[:,1:][mask])
                 return indices,points
             else:
@@ -169,10 +176,6 @@ class KDTree():
         while n/2**d > self.leaf_size:
             d += 1
         return d
-
-    def _get_pts(self,idx):
-        fp = self.leaves[str(idx)][()] #Load into memory
-        return fp
 
     @staticmethod
     def _get_child_idx(i):
