@@ -12,7 +12,7 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None,compression=None,shuffle=None):
         if path is None:
             path = os.getcwd()
                
@@ -32,6 +32,9 @@ class KDTree():
             self.chunksize = None
         else:
             self.chunksize = chunksize
+
+        self.compression = compression
+        self.shuffle = shuffle
 
         self.tree = None
 
@@ -66,11 +69,14 @@ class KDTree():
         self.leaf_size = int(np.ceil(len(X) / 2**self.depth))
         self.n_leaves = 2**self.depth
         self.n_nodes = 2**(self.depth+1)-1
-        
-        #TODO enable compression ?
-        self.tree = self.h5f.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype)
 
-        self.leaves = self.h5f.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize)#,compression="gzip",shuffle=True)
+        if self.chunksize is None:
+            self.chunksize = (1,self.leaf_size,self._dim+1)
+
+        self.tree = self.h5f.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype,compression=self.compression,shuffle=self.shuffle)
+
+        self.leaves = self.h5f.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize,
+                                                compression=self.compression,shuffle=self.shuffle)
         
         start = time.time()
         self._build_tree(X, I)
