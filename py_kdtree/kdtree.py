@@ -39,8 +39,6 @@ class KDTree():
         if os.path.isfile(self.model_file):
             print(f"INFO: Load existing model under {self.model_file}")
             self._load()
-
-        assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -58,10 +56,11 @@ class KDTree():
         I = np.array(range(len(X)))
 
         self.depth = self._calc_depth(len(X))
-        n_nodes = 2**(self.depth+1)-1
-        self.tree = np.empty((n_nodes,self._dim,2),dtype=self.dtype)
-        #lsize dict required for different sizes of leaves when N cannot be evenly split
-        self._lsize_dict = {}
+        #update the leaf size with the actual value
+        self.leaf_size = int(np.ceil(len(X) / 2**self.depth))
+        self.n_leaves = 2**self.depth
+        self.n_nodes = 2**(self.depth+1)-1
+        self.tree = np.empty((self.n_nodes,self._dim,2),dtype=self.dtype)
 
         start = time.time()
         self._build_tree(X, I)
@@ -81,9 +80,13 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            self._lsize_dict[idx] = shape[0]
-            filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
-            fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=shape)
+            if shape != self.leaf_size:
+                nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
+                pts = np.vstack([pts,nan])
+            
+            lf_idx = self.n_nodes-self.n_leaves-idx
+            filename = os.path.join(self.tmp_path, "mem"+str(lf_idx)+".mmap")
+            fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=pts.shape)
             fp[:] = pts[:]
             fp.flush()
 
@@ -134,15 +137,17 @@ class KDTree():
             # is partition fully contained by box
             bounds = self.tree[idx]
             if (np.all(bounds[:,0] >= mins)) and (np.all(bounds[:,1] <= maxs)):
-                pts = self._get_pts(idx)
-                indices.extend(list(pts[:,0].astype(np.int64)))
+                lf_idx = self.n_nodes-self.n_leaves-idx
+                pts = self._get_pts(lf_idx)
+                indices.extend(pts[:,0].astype(np.int64))
                 points.extend(pts[:,1:])
                 return indices,points
             #intersects
             elif not ( np.any(bounds[:,0] > maxs) ) or ( np.any(bounds[:,1] < mins )):
-                pts = self._get_pts(idx)
+                lf_idx = self.n_nodes-self.n_leaves-idx
+                pts = self._get_pts(lf_idx)
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
-                indices.extend(list(pts[:,0][mask].astype(np.int64)))
+                indices.extend(pts[:,0][mask].astype(np.int64))
                 points.extend(pts[:,1:][mask])
                 return indices,points
             else:
@@ -178,7 +183,7 @@ class KDTree():
 
     def _get_pts(self,idx):
         filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
-        shape = (self._lsize_dict[idx],self._dim+1)
+        shape = (self.leaf_size,self._dim+1)
         fp = np.memmap(filename, dtype=self.dtype, mode='r', shape=shape) 
         return fp
 
