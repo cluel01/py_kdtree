@@ -92,7 +92,7 @@ class KDTree():
 
             shape = pts.shape
             if shape[0] != self.leaf_size:
-                nan = np.array([-1,*[-np.inf]*self._dim])
+                nan = np.array([-1,*[-np.inf]*self._dim],self.dtype)
                 pts = np.vstack([pts,nan])
             lf_idx = self.n_nodes-self.n_leaves-idx
             self.leaves[lf_idx] = pts
