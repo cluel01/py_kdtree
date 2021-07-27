@@ -2,7 +2,8 @@ import time
 import numpy as np
 import math
 import os
-import pickle
+
+import h5py
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -11,36 +12,43 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None):
         if path is None:
             path = os.getcwd()
-        
-        tmp_path = path +"/.mmap"
-        
+               
         if not os.path.isdir(path):
             os.makedirs(path)
 
-        if not os.path.isdir(tmp_path):
-            os.makedirs(tmp_path)
 
         self.path = path
-        self.tmp_path = tmp_path
 
         self.dtype = dtype
         self.leaf_size = leaf_size
 
+        if chunksize is None:
+            #autochunking enabled
+            self.chunksize = True
+        elif chunksize == "leaf":
+            self.chunksize = None
+        else:
+            self.chunksize = chunksize
+
         self.tree = None
-        
+
         if model_file is None:
-            self.model_file = os.path.join(path,"tree.pkl")
+            self.model_file = os.path.join(path,"kdtree.h5")
         else:
             self.model_file = os.path.join(path,model_file)
 
         if os.path.isfile(self.model_file):
             print(f"INFO: Load existing model under {self.model_file}")
-            self._load()
+            self.h5f = h5py.File(self.model_file, 'r')
+            self.tree = self.h5f["tree"][()]
 
-        assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
+        else:
+            self.h5f = h5py.File(self.model_file, 'w')
+
+        #assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -50,23 +58,22 @@ class KDTree():
         if self.tree is not None:
             print("INFO: Model is already loaded, overwrite existing model!")
             os.remove(self.model_file)
-            if len(os.listdir(self.tmp_path)) > 0:
-                filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
-                for f in filelist:
-                    os.remove(os.path.join(self.tmp_path, f))
+            self.h5f = h5py.File(self.model_file, 'w')
 
         I = np.array(range(len(X)))
 
         self.depth = self._calc_depth(len(X))
         n_nodes = 2**(self.depth+1)-1
-        self.tree = np.empty((n_nodes,self._dim,2),dtype=self.dtype)
-        #lsize dict required for different sizes of leaves when N cannot be evenly split
-        self._lsize_dict = {}
+        
+        self.tree = self.h5f.create_dataset("tree",shape=(n_nodes,self._dim,2),dtype=self.dtype)
+
+        self.leaves = self.h5f.create_group("leaves")
 
         start = time.time()
         self._build_tree(X, I)
         end = time.time()
-        self._save()
+        self.tree = self.tree[()]
+
         print(f"INFO: Building tree took {end-start} seconds")
 
 
@@ -81,12 +88,9 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            self._lsize_dict[idx] = shape[0]
-            filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
-            fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=shape)
-            fp[:] = pts[:]
-            fp.flush()
-
+            #dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=shape)
+            dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=self.chunksize)
+            dset[:] = pts
             return 
         
         axis = depth % self._dim
@@ -130,6 +134,7 @@ class KDTree():
 
         l_idx,r_idx = self._get_child_idx(idx)
         
+        #if leaf
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
             # is partition fully contained by box
             bounds = self.tree[idx]
@@ -160,16 +165,6 @@ class KDTree():
 
         return indices,points
 
-    def _load(self):
-        with open(self.model_file, 'rb') as file:
-            new = pickle.load(file)
-        self.__dict__.update(new.__dict__)
-
-    def _save(self):
-        with open(self.model_file, 'wb') as file:
-            pickle.dump(self, file) 
-        print(f"Model was saved under {self.model_file}")
-
     def _calc_depth(self,n):
         d = 0
         while n/2**d > self.leaf_size:
@@ -177,9 +172,7 @@ class KDTree():
         return d
 
     def _get_pts(self,idx):
-        filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
-        shape = (self._lsize_dict[idx],self._dim+1)
-        fp = np.memmap(filename, dtype=self.dtype, mode='r', shape=shape) 
+        fp = self.leaves[str(idx)][()]
         return fp
 
     @staticmethod
