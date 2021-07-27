@@ -64,6 +64,7 @@ class KDTree():
         self.depth = self._calc_depth(len(X))
         n_nodes = 2**(self.depth+1)-1
         
+        #TODO enable compression ?
         self.tree = self.h5f.create_dataset("tree",shape=(n_nodes,self._dim,2),dtype=self.dtype)
 
         self.leaves = self.h5f.create_group("leaves")
@@ -87,7 +88,7 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=self.chunksize)
+            dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=self.chunksize)#,compression="gzip",shuffle=True)
             dset[:] = pts
             return 
         
