@@ -44,11 +44,10 @@ class KDTree():
             print(f"INFO: Load existing model under {self.model_file}")
             self.h5f = h5py.File(self.model_file, 'r')
             self.tree = self.h5f["tree"][()]
+            self.leaves = self.h5f["leaves"]
 
         else:
             self.h5f = h5py.File(self.model_file, 'w')
-
-        #assert self.leaf_size == leaf_size, "Leaf size of model needs to match the input!"
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -88,7 +87,6 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            #dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=shape)
             dset = self.leaves.create_dataset(str(idx),shape=shape,dtype=self.dtype,chunks=self.chunksize)
             dset[:] = pts
             return 
