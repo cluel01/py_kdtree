@@ -17,3 +17,4 @@ inds,pts = tree.query_box(np.array([0,0,0]),np.array([0.5,0.1,0.1]))
 
 print(len(inds))
 print(len(pts))
+print(tree.depth)

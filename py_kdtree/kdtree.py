@@ -171,7 +171,7 @@ class KDTree():
         return d
 
     def _get_pts(self,idx):
-        fp = self.leaves[str(idx)][()]
+        fp = self.leaves[str(idx)][()] #Load into memory
         return fp
 
     @staticmethod
