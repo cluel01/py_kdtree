@@ -91,7 +91,7 @@ class KDTreeSet():
 
                 X = np.vstack(data)          
                 gname = "_".join([str(j) for j in i])
-                self.trees[gname].fit(X[:,i])
+                self.trees[gname].fit(X)
 
             self.h5f.attrs["trained"] = 1
         else:
