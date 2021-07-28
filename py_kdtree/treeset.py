@@ -19,6 +19,8 @@ class KDTreeSet():
         self.n = len(indexes)
         self.model_name = model_name
 
+        self.dtype = dtype
+
         self.trees = {}
 
         self.path = path
