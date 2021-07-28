@@ -88,8 +88,6 @@ class KDTreeSet():
                 self.trees[dname].fit(X)
 
     def query(self,mins,maxs,idx):
-        assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
-
         if mins.dtype != np.dtype(self.dtype):
             mins = mins.astype(self.dtype)
         if maxs.dtype != np.dtype(self.dtype):
@@ -109,8 +107,6 @@ class KDTreeSet():
     '''
     
     def multi_query(self,mins,maxs,idxs,no_pts=False):
-        assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
-
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
                 mins = mins.astype(self.dtype)
