@@ -55,6 +55,7 @@ class KDTree():
                     self.dt = self.h5f[h5group]
                 else:
                     self.dt = self.h5f.create_group(h5group)
+                    
             keys = list(self.dt.keys())
             if ("tree" in keys) and ("leaves" in keys):
                 print(f"INFO: Load existing model!")

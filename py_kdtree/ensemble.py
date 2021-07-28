@@ -5,8 +5,6 @@ import h5py
 
 from .kdtree import KDTree
 
-#TODO h5py for complete ensemble instead of dict
-
 class KDTreeEnsemble():
     def __init__(self,indexes,model_file=None,path=None,**kwargs) -> None:       
         if isinstance(indexes,np.ndarray):
@@ -19,6 +17,8 @@ class KDTreeEnsemble():
         
         self.indexes = indexes
         self.n = len(indexes)
+
+        self.trees = {}
 
         self.path = path
         if path is None:
@@ -34,8 +34,9 @@ class KDTreeEnsemble():
 
         if not os.path.isfile(self.model_file):
             self.h5f = h5py.File(self.model_file, 'w')
+            #Not trained flag
+            self.h5f.attrs["trained"] = 0
 
-            self.trees = {}
             for i in indexes:
                 gname = "_".join([str(j) for j in i])
                 grp = self.h5f.create_group(gname)
@@ -49,24 +50,29 @@ class KDTreeEnsemble():
                 gname = "_".join([str(j) for j in i])
                 if not gname in self.h5f:
                     raise Exception(f"Index {str(i)} is missing in existing file {self.model_file}. Create new model with the required indexes by providing a different <model_file>!")
-
+                self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname)
 
     def __len__(self):
         return self.n
 
     def fit(self,X):
+        assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
+
         for i in self.indexes:
             gname = "_".join([str(j) for j in i])
             self.trees[gname].fit(X[:,i])
+        self.h5f.attrs["trained"] = 1
 
 
 
     # Fitting the trees in sequential manner when X is too large to fit into memory as a whole
     def fit_seq(self,X_parts_list):
-        pass
+        assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
-    def query(self):
-        pass
+    def query(self,mins,maxs,idx):
+        assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
 
-    def multi_query(self):
+        #query stuff
+
+    def multi_query(self,mins,maxs,idxs):
         pass
