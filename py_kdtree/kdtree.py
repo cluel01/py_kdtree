@@ -12,7 +12,7 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None,compression=None,shuffle=None):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None,compression=None,shuffle=None,h5group=None):
         if path is None:
             path = os.getcwd()
                
@@ -36,6 +36,8 @@ class KDTree():
         self.compression = compression
         self.shuffle = shuffle
 
+        self.h5group = h5group
+
         self.tree = None
 
         if model_file is None:
@@ -44,13 +46,25 @@ class KDTree():
             self.model_file = os.path.join(path,model_file)
 
         if os.path.isfile(self.model_file):
-            print(f"INFO: Load existing model under {self.model_file}")
-            self.h5f = h5py.File(self.model_file, 'r')
-            self.tree = self.h5f["tree"][()]
-            self.leaves = self.h5f["leaves"]
-
+            self.h5f = h5py.File(self.model_file, 'a')
+            keys = None
+            if h5group is None:
+                self.dt = self.h5f
+            else:
+                if "/" + h5group in self.h5f:
+                    self.dt = self.h5f[h5group]
+                else:
+                    self.dt = self.h5f.create_group(h5group)
+            keys = list(self.dt.keys())
+            if ("tree" in keys) and ("leaves" in keys):
+                print(f"INFO: Load existing model!")
+                self.tree = self.dt["tree"][()]
+                self.leaves = self.dt["leaves"]
         else:
+            if h5group is not None:
+                raise Exception("WARNING: h5group only relevant for ensembles!")
             self.h5f = h5py.File(self.model_file, 'w')
+            self.dt = self.h5f
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -58,9 +72,14 @@ class KDTree():
         assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
         if self.tree is not None:
-            print("INFO: Model is already loaded, overwrite existing model!")
-            os.remove(self.model_file)
-            self.h5f = h5py.File(self.model_file, 'w')
+            #Only remove if it is a single model
+            if self.h5group is None:
+                print("INFO: Model is already loaded, overwrite existing model!")
+                os.remove(self.model_file)
+                self.h5f = h5py.File(self.model_file, 'w')
+                self.dt = self.h5f
+            else:
+                raise Exception("Model already fitted!")
 
         I = np.array(range(len(X)))
 
@@ -73,9 +92,9 @@ class KDTree():
         if self.chunksize is None:
             self.chunksize = (1,self.leaf_size,self._dim+1)
 
-        self.tree = self.h5f.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype,compression=self.compression,shuffle=self.shuffle)
+        self.tree = self.dt.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype,compression=self.compression,shuffle=self.shuffle)
 
-        self.leaves = self.h5f.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize,
+        self.leaves = self.dt.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize,
                                                 compression=self.compression,shuffle=self.shuffle)
         
         start = time.time()
