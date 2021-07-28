@@ -61,6 +61,10 @@ class KDTree():
                 print(f"INFO: Load existing model!")
                 self.tree = self.dt["tree"][()]
                 self.leaves = self.dt["leaves"]
+                self.n_nodes = self.dt.attrs["n_nodes"]
+                self.n_leaves = self.dt.attrs["n_leaves"]
+                self.leaf_size = self.dt.attrs["leaf_size"]
+
         else:
             if h5group is not None:
                 raise Exception("WARNING: h5group only relevant for ensembles!")
@@ -89,6 +93,10 @@ class KDTree():
         self.leaf_size = int(np.ceil(len(X) / 2**self.depth))
         self.n_leaves = 2**self.depth
         self.n_nodes = 2**(self.depth+1)-1
+
+        self.dt.attrs["n_nodes"] = self.n_nodes
+        self.dt.attrs["n_leaves"] = self.n_leaves
+        self.dt.attrs["leaf_size"] = self.leaf_size
 
         if self.chunksize is None:
             self.chunksize = (1,self.leaf_size,self._dim+1)
