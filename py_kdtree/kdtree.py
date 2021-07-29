@@ -11,7 +11,7 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,verbose=True):
         if path is None:
             path = os.getcwd()
         
@@ -25,7 +25,7 @@ class KDTree():
 
         self.path = path
         self.tmp_path = tmp_path
-
+        self.verbose = verbose
         self.dtype = dtype
         self.leaf_size = leaf_size
 
@@ -37,7 +37,8 @@ class KDTree():
             self.model_file = os.path.join(path,model_file)
 
         if os.path.isfile(self.model_file):
-            print(f"INFO: Load existing model under {self.model_file}")
+            if self.verbose:
+                print(f"INFO: Load existing model under {self.model_file}")
             self._load()
     
     def fit(self, X):
@@ -46,7 +47,8 @@ class KDTree():
         assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
         if self.tree is not None:
-            print("INFO: Model is already loaded, overwrite existing model!")
+            if self.verbose:
+                print("INFO: Model is already loaded, overwrite existing model!")
             os.remove(self.model_file)
             if len(os.listdir(self.tmp_path)) > 0:
                 filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
@@ -66,7 +68,8 @@ class KDTree():
         self._build_tree(X, I)
         end = time.time()
         self._save()
-        print(f"INFO: Building tree took {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: Building tree took {end-start} seconds")
 
 
     def _build_tree(self, pts, indices, depth=0,idx=0):
@@ -121,7 +124,8 @@ class KDTree():
         start = time.time()
         indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
-        print(f"INFO: Box search took: {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
         return indices,np.array(points)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
@@ -168,12 +172,16 @@ class KDTree():
     def _load(self):
         with open(self.model_file, 'rb') as file:
             new = pickle.load(file)
+        verbose = self.verbose
+        # To dont overwrite verbosity of model
         self.__dict__.update(new.__dict__)
+        self.verbose = verbose
 
     def _save(self):
         with open(self.model_file, 'wb') as file:
             pickle.dump(self, file) 
-        print(f"Model was saved under {self.model_file}")
+        if self.verbose:            
+            print(f"Model was saved under {self.model_file}")
 
     def _calc_depth(self,n):
         d = 0

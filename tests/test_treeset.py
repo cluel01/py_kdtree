@@ -8,7 +8,7 @@ X = np.random.randn(1000,7).astype(np.float32)
 idxs = [[0,1,2],[3,4,5,6],[0,1,3]]
 
 
-ens = KDTreeSet(idxs,leaf_size=20,path="/home/cluelf/py_kdtree/run",dtype="float32")
+ens = KDTreeSet(idxs,leaf_size=20,path="/home/cluelf/py_kdtree/run",dtype="float32",verbose=True)
 
 ens.fit(X)
 

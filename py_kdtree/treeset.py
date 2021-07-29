@@ -6,7 +6,7 @@ import time
 from .kdtree import KDTree
 
 class KDTreeSet():
-    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",**kwargs) -> None:       
+    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,**kwargs) -> None:       
         if isinstance(indexes,np.ndarray):
             if len(indexes.shape) == 2:
                 indexes = indexes.tolist()
@@ -18,7 +18,7 @@ class KDTreeSet():
         self.indexes = indexes
         self.n = len(indexes)
         self.model_name = model_name
-
+        self.verbose = verbose
         self.dtype = dtype
 
         self.trees = {}
@@ -47,13 +47,15 @@ class KDTreeSet():
         if exists:
             for i in indexes:
                 dname = "_".join([str(j) for j in i])
-                tree = KDTree(path=dname,model_file=model_name)
+                full = os.path.join(path,dname)
+                tree = KDTree(path=full,model_file=model_name,verbose=self.verbose)
                 self.trees[dname] = tree
 
         else:
             for i in indexes:
                 dname = "_".join([str(j) for j in i])
-                tree = KDTree(path=path,dtype=dtype,model_file=model_name,**kwargs)
+                full = os.path.join(path,dname)
+                tree = KDTree(path=full,dtype=dtype,model_file=model_name,verbose=self.verbose,**kwargs)
                 self.trees[dname] = tree        
 
 
@@ -64,7 +66,8 @@ class KDTreeSet():
         for i in self.indexes:
             dname = "_".join([str(j) for j in i])
             if self.trees[dname].tree is not None:
-                print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
+                if self.verbose:
+                    print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
             else:
                 self.trees[dname].fit(X[:,i])
 
@@ -76,7 +79,8 @@ class KDTreeSet():
         for i in self.indexes:
             dname = "_".join([str(j) for j in i])
             if self.trees[dname].tree is not None:
-                print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
+                if self.verbose:
+                    print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
             else:
                 data = []
                 for f in X_parts_list:
@@ -129,8 +133,8 @@ class KDTreeSet():
             if no_pts == False:
                 p_list.append(pts[new_idx])
         end = time.time()
-
-        print(f"INFO: query finished in {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
 
         return i_list,p_list
             
