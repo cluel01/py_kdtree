@@ -1,8 +1,9 @@
 import numpy as np
 import os
-import h5py
 import time
-
+import sys
+import os 
+import multiprocessing
 from .kdtree import KDTree
 
 class KDTreeSet():
@@ -105,14 +106,13 @@ class KDTreeSet():
 
         return inds,pts
 
-    #TODO do this in parallel -> multiprocessing
     '''
     Input:
     mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
                     -> lists required for varying dims of indices
     '''
     
-    def multi_query(self,mins,maxs,idxs,no_pts=False):
+    def multi_query(self,mins,maxs,idxs,no_pts=False,n_jobs=-1):
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
                 mins = mins.astype(self.dtype)
@@ -122,11 +122,34 @@ class KDTreeSet():
                 maxs = maxs.astype(self.dtype)
 
         start = time.time()
+
+        if n_jobs == -1:
+            total_cpus = os.cpu_count()
+            if total_cpus > len(idxs):
+                n_jobs = len(idxs)
+            else:
+                n_jobs = total_cpus
+        else:
+            n_jobs = n_jobs
+
+        params = [x for i in range(len(idxs))  for x in [[mins[i],maxs[i],idxs[i]]]]
+
+        pool = multiprocessing.Pool(n_jobs)
+
+        try:
+            results = pool.starmap(self.query,params)
+        except  Exception as e:
+            print(f"Warning: Error in query! \n {e}")
+            pool.close()
+            sys.exit()
+        pool.close()
+        pool.join()
+
         i_list = []
         # To account for returned pts of different dimensionality 
         p_list = []
         for i in range(len(idxs)):
-            inds, pts =self.query(mins[i],maxs[i],idxs[i])
+            inds, pts = results[i]
             #get inds not part of i_list so far
             new_idx = np.where(np.in1d(inds,i_list) == False)
             i_list.extend(np.array(inds)[new_idx])
