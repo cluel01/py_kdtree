@@ -35,43 +35,46 @@ class KDTreeSet():
                 self.model_file = os.path.join(path,model_file)
 
         if not os.path.isfile(self.model_file):
-            self.h5f = h5py.File(self.model_file, 'w')
-            #Not trained flag
-            self.h5f.attrs["trained"] = 0
-            self.h5f.attrs["dtype"] = dtype
+            h5f = h5py.File(self.model_file, 'w')
+            h5f.attrs["dtype"] = dtype
             
 
             for i in indexes:
                 gname = "_".join([str(j) for j in i])
-                grp = self.h5f.create_group(gname)
+                grp = h5f.create_group(gname)
                 grp.attrs["features"] = i
 
                 t = KDTree(path=self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose,
                             **kwargs)
                 self.trees[gname] = t
+            self.trained = False
         else:
-            self.h5f = h5py.File(self.model_file, 'a')
-            dtype = self.h5f.attrs["dtype"]
+            h5f = h5py.File(self.model_file, 'a')
+            dtype = h5f.attrs["dtype"]
             for i in indexes:
                 gname = "_".join([str(j) for j in i])
-                if not gname in self.h5f:
+                if not gname in h5f:
                     raise Exception(f"Index {str(i)} is missing in existing file {self.model_file}. Create new model with the required indexes by providing a different <model_file>!")
                 self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose)
+            self.trained = True
         self.dtype = dtype
+        h5f.close()
 
     def __len__(self):
         return self.n
 
     def fit(self,X):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
-        if self.h5f.attrs["trained"] == 0:
+
+        if not self.trained:
             for i in self.indexes:
                 gname = "_".join([str(j) for j in i])
                 self.trees[gname].fit(X[:,i])
-            self.h5f.attrs["trained"] = 1
+            self.trained = True
         else:
             if self.verbose:
                 print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
+
 
 
 
@@ -79,7 +82,7 @@ class KDTreeSet():
     def fit_seq(self,X_parts_list,parts_path=None):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
-        if self.h5f.attrs["trained"] == 0:
+        if not self.trained:
             if parts_path is None:
                 parts_path = self.path
 
@@ -96,13 +99,13 @@ class KDTreeSet():
                 gname = "_".join([str(j) for j in i])
                 self.trees[gname].fit(X)
 
-            self.h5f.attrs["trained"] = 1
+            self.trained = True
         else:
             if self.verbose:
-                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
+                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!") 
 
     def query(self,mins,maxs,idx):
-        assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
+        assert self.trained,"Group of trees needs to be trained first!"
 
         if mins.dtype != np.dtype(self.dtype):
             mins = mins.astype(self.dtype)
@@ -120,10 +123,8 @@ class KDTreeSet():
     mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
                     -> lists required for varying dims of indices
     '''
-    
-    #TODO parallelization? -> problematic due to h5py objects in class
-    def multi_query(self,mins,maxs,idxs,no_pts=False):
-        assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
+    def multi_query(self,mins,maxs,idxs,no_pts=False,n_jobs=-1):
+        assert self.trained,"Group of trees needs to be trained first!"
 
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
@@ -134,11 +135,34 @@ class KDTreeSet():
                 maxs = maxs.astype(self.dtype)
 
         start = time.time()
+
+        if n_jobs == -1:
+            total_cpus = os.cpu_count()
+            if total_cpus > len(idxs):
+                n_jobs = len(idxs)
+            else:
+                n_jobs = total_cpus
+        else:
+            n_jobs = n_jobs
+
+        params = [x for i in range(len(idxs))  for x in [[mins[i],maxs[i],idxs[i]]]]
+
+        pool = multiprocessing.Pool(n_jobs)
+
+        try:
+            results = pool.starmap(self.query,params)
+        except  Exception as e:
+            print(f"Warning: Error in query! \n {e}")
+            pool.close()
+            sys.exit()
+        pool.close()
+        pool.join()
+
         i_list = []
         # To account for returned pts of different dimensionality 
         p_list = []
         for i in range(len(idxs)):
-            inds, pts =self.query(mins[i],maxs[i],idxs[i])
+            inds, pts = results[i]
             #get inds not part of i_list so far
             new_idx = np.where(np.in1d(inds,i_list) == False)
             i_list.extend(np.array(inds)[new_idx])
@@ -150,6 +174,8 @@ class KDTreeSet():
             print(f"INFO: query finished in {end-start} seconds")
 
         return i_list,p_list
+
+    
             
 
 

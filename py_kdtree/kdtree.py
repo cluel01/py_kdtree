@@ -46,31 +46,31 @@ class KDTree():
             self.model_file = os.path.join(path,model_file)
 
         if os.path.isfile(self.model_file):
-            self.h5f = h5py.File(self.model_file, 'a')
+            h5f = h5py.File(self.model_file, 'a')
             keys = None
             if h5group is None:
-                self.dt = self.h5f
+                dt = h5f
             else:
-                if "/" + h5group in self.h5f:
-                    self.dt = self.h5f[h5group]
+                if "/" + h5group in h5f:
+                    dt = h5f[h5group]
                 else:
-                    self.dt = self.h5f.create_group(h5group)
+                    dt = h5f.create_group(h5group)
                     
-            keys = list(self.dt.keys())
+            keys = list(dt.keys())
             if ("tree" in keys) and ("leaves" in keys):
                 if self.verbose:
                     print(f"INFO: Load existing model!")
-                self.tree = self.dt["tree"][()]
-                self.leaves = self.dt["leaves"]
-                self.n_nodes = self.dt.attrs["n_nodes"]
-                self.n_leaves = self.dt.attrs["n_leaves"]
-                self.leaf_size = self.dt.attrs["leaf_size"]
+                self.tree = dt["tree"][()]
+                self.n_nodes = dt.attrs["n_nodes"]
+                self.n_leaves = dt.attrs["n_leaves"]
+                self.leaf_size = dt.attrs["leaf_size"]
 
         else:
             if h5group is not None:
                 raise Exception("WARNING: h5group only relevant for ensembles!")
-            self.h5f = h5py.File(self.model_file, 'w')
-            self.dt = self.h5f
+            h5f,dt = self._init_h5("w")
+        h5f.close()
+        
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -83,10 +83,10 @@ class KDTree():
                 if self.verbose:
                     print("INFO: Model is already loaded, overwrite existing model!")
                 os.remove(self.model_file)
-                self.h5f = h5py.File(self.model_file, 'w')
-                self.dt = self.h5f
             else:
                 raise Exception("Model already fitted!")
+
+        h5f,dt = self._init_h5("a")
 
         I = np.array(range(len(X)))
 
@@ -96,16 +96,16 @@ class KDTree():
         self.n_leaves = 2**self.depth
         self.n_nodes = 2**(self.depth+1)-1
 
-        self.dt.attrs["n_nodes"] = self.n_nodes
-        self.dt.attrs["n_leaves"] = self.n_leaves
-        self.dt.attrs["leaf_size"] = self.leaf_size
+        dt.attrs["n_nodes"] = self.n_nodes
+        dt.attrs["n_leaves"] = self.n_leaves
+        dt.attrs["leaf_size"] = self.leaf_size
 
         if self.chunksize is None:
             self.chunksize = (1,self.leaf_size,self._dim+1)
 
-        self.tree = self.dt.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype,compression=self.compression,shuffle=self.shuffle)
+        self.tree = dt.create_dataset("tree",shape=(self.n_nodes,self._dim,2),dtype=self.dtype,compression=self.compression,shuffle=self.shuffle)
 
-        self.leaves = self.dt.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize,
+        self.leaves = dt.create_dataset("leaves",shape=(self.n_leaves,self.leaf_size,self._dim+1),dtype=self.dtype,chunks=self.chunksize,
                                                 compression=self.compression,shuffle=self.shuffle)
         
         start = time.time()
@@ -114,6 +114,7 @@ class KDTree():
         self.tree = self.tree[()]
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
+        h5f.close()
 
 
     def _build_tree(self, pts, indices, depth=0,idx=0):
@@ -161,10 +162,18 @@ class KDTree():
             raise Exception("Tree not fitted yet!")
 
         start = time.time()
+
+        h5f, dt = self._init_h5("r")
+
+        self.leaves = dt["leaves"]
+
         indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
+
+        h5f.close()
+        
         return indices,np.array(points)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
@@ -213,6 +222,14 @@ class KDTree():
         while n/2**d > self.leaf_size:
             d += 1
         return d
+
+    def _init_h5(self,mode):
+        h5f = h5py.File(self.model_file, mode)
+        if self.h5group is None:
+            dt = h5f
+        else:
+            dt = h5f[self.h5group]
+        return h5f,dt
 
     @staticmethod
     def _get_child_idx(i):

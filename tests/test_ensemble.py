@@ -23,7 +23,6 @@ inds,pts = ens.query(np.array([0,0,0,0]),np.array([0.5,0.1,0.1,0.1]),idxs[1])
 print(len(inds))
 print(len(pts))
 
-inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.1],[0.1,0.1,0.2]]),[idxs[i] for i in [0,2]])
-print(len(inds))
-
-print(ens.trees["0_1_2"].dt["leaves"].chunks)
+#inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.1],[0.1,0.1,0.2]]),[idxs[i] for i in [0,2]])
+#print(len(inds))
+#
