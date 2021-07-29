@@ -121,6 +121,7 @@ class KDTreeSet():
                     -> lists required for varying dims of indices
     '''
     
+    #TODO parallelization? -> problematic due to h5py objects in class
     def multi_query(self,mins,maxs,idxs,no_pts=False):
         assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
 
