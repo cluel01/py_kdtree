@@ -12,18 +12,7 @@ ens = KDTreeSet(idxs,leaf_size=20,path="/home/cluelf/py_kdtree/run",dtype="float
 
 ens.fit(X)
 
-
-inds,pts = ens.query(np.array([0,0,0]),np.array([0.5,.1,.1]),idxs[0])
-print(len(inds))
-print(len(pts))
-#print(inds)
-
-inds,pts = ens.query(np.array([0,0,0,0]),np.array([0.5,0.1,0.1,0.1]),idxs[1])
-
-print(len(inds))
-print(len(pts))
-
-inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.1],[0.1,0.1,0.2]]),[idxs[i] for i in [0,2]])
+inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.1],[0.1,0.1,0.2]]),[idxs[i] for i in [0,2]],n_jobs=1)
 print(len(inds))
 
 print(ens.trees["0_1_2"].dt["leaves"].chunks)

@@ -12,7 +12,7 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None,compression=None,shuffle=None,h5group=None):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,chunksize=None,compression=None,shuffle=None,h5group=None,verbose=True):
         if path is None:
             path = os.getcwd()
                
@@ -21,7 +21,7 @@ class KDTree():
 
 
         self.path = path
-
+        self.verbose = verbose
         self.dtype = dtype
         self.leaf_size = leaf_size
 
@@ -58,7 +58,8 @@ class KDTree():
                     
             keys = list(self.dt.keys())
             if ("tree" in keys) and ("leaves" in keys):
-                print(f"INFO: Load existing model!")
+                if self.verbose:
+                    print(f"INFO: Load existing model!")
                 self.tree = self.dt["tree"][()]
                 self.leaves = self.dt["leaves"]
                 self.n_nodes = self.dt.attrs["n_nodes"]
@@ -79,7 +80,8 @@ class KDTree():
         if self.tree is not None:
             #Only remove if it is a single model
             if self.h5group is None:
-                print("INFO: Model is already loaded, overwrite existing model!")
+                if self.verbose:
+                    print("INFO: Model is already loaded, overwrite existing model!")
                 os.remove(self.model_file)
                 self.h5f = h5py.File(self.model_file, 'w')
                 self.dt = self.h5f
@@ -110,8 +112,8 @@ class KDTree():
         self._build_tree(X, I)
         end = time.time()
         self.tree = self.tree[()]
-
-        print(f"INFO: Building tree took {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: Building tree took {end-start} seconds")
 
 
     def _build_tree(self, pts, indices, depth=0,idx=0):
@@ -161,7 +163,8 @@ class KDTree():
         start = time.time()
         indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
-        print(f"INFO: Box search took: {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
         return indices,np.array(points)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):

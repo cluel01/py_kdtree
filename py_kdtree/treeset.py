@@ -2,11 +2,13 @@ import numpy as np
 import os
 import h5py
 import time
-
+import multiprocessing
+import os 
+import sys
 from .kdtree import KDTree
 
 class KDTreeSet():
-    def __init__(self,indexes,model_file=None,path=None,dtype="float64",**kwargs) -> None:       
+    def __init__(self,indexes,model_file=None,path=None,dtype="float64",verbose=True,**kwargs) -> None:       
         if isinstance(indexes,np.ndarray):
             if len(indexes.shape) == 2:
                 indexes = indexes.tolist()
@@ -17,7 +19,7 @@ class KDTreeSet():
         
         self.indexes = indexes
         self.n = len(indexes)
-
+        self.verbose = verbose
         self.trees = {}
 
         self.path = path
@@ -44,7 +46,7 @@ class KDTreeSet():
                 grp = self.h5f.create_group(gname)
                 grp.attrs["features"] = i
 
-                t = KDTree(path=self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,
+                t = KDTree(path=self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose,
                             **kwargs)
                 self.trees[gname] = t
         else:
@@ -54,7 +56,7 @@ class KDTreeSet():
                 gname = "_".join([str(j) for j in i])
                 if not gname in self.h5f:
                     raise Exception(f"Index {str(i)} is missing in existing file {self.model_file}. Create new model with the required indexes by providing a different <model_file>!")
-                self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype)
+                self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose)
         self.dtype = dtype
 
     def __len__(self):
@@ -68,7 +70,8 @@ class KDTreeSet():
                 self.trees[gname].fit(X[:,i])
             self.h5f.attrs["trained"] = 1
         else:
-            print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
+            if self.verbose:
+                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
 
 
@@ -95,7 +98,8 @@ class KDTreeSet():
 
             self.h5f.attrs["trained"] = 1
         else:
-            print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
+            if self.verbose:
+                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
     def query(self,mins,maxs,idx):
         assert self.h5f.attrs["trained"] == 1,"Group of trees needs to be trained first!"
@@ -111,7 +115,6 @@ class KDTreeSet():
 
         return inds,pts
 
-    #TODO do this in parallel -> multiprocessing
     '''
     Input:
     mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
@@ -142,7 +145,8 @@ class KDTreeSet():
                 p_list.append(pts[new_idx])
         end = time.time()
 
-        print(f"INFO: query finished in {end-start} seconds")
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
 
         return i_list,p_list
             
