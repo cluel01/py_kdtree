@@ -49,27 +49,50 @@ class KDTreeSet():
             else:
                 self.trees[dname].fit(X[:,i])
 
-    # Fitting the trees in sequential manner when X is too large to fit into memory as a whole
-    def fit_seq(self,X_parts_list,parts_path=None):
+
+    '''
+    ncached_idx - defines the number of indices are stored at once in memory
+    '''
+
+    def fit_seq(self,X_parts_list,parts_path=None,n_chached=1):
+        assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
+
         if parts_path is None:
             parts_path = self.path
 
+        #Filter trained idxs
+        idxs = []
         for i in self.indexes:
             dname = "_".join([self.group_prefix + str(j) for j in i])
-            if self.trees[dname].tree is not None:
-                if self.verbose:
-                    print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
-            else:
+            if self.trees[dname].tree is None:
+                idxs.append(i)
+
+        if len(idxs) > 0:
+            c = 0
+            while c < len(idxs):
+                sub = idxs[c:c+n_chached]
+                flat_idx = [item for sublist in sub for item in sublist] #Flatten list
                 data = []
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
-                    x = np.load(fname)[:,i]
+                    x = np.load(fname)[:,flat_idx]
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
                     data.append(x)
+                X = np.vstack(data)
 
-                X = np.vstack(data)    
-                self.trees[dname].fit(X)
+                #Train models
+                for i in range(len(sub)):
+                    start = len([item for sublist in sub[:i] for item in sublist])
+                    end = start+len(sub[i])
+                    dname = dname = "_".join([self.group_prefix + str(j) for j in sub[i]])
+                    self.trees[dname].fit(X[:,start:end])
+                c += n_chached
+
+            self.trained = True
+        else:
+            if self.verbose:
+                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
     def query(self,mins,maxs,idx):
         if mins.dtype != np.dtype(self.dtype):
