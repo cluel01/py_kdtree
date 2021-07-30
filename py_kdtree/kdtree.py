@@ -179,7 +179,7 @@ class KDTree():
 
         h5f.close()
         
-        return indices,np.array(points)
+        return indices,np.array(points,dtype=self.dtype)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
