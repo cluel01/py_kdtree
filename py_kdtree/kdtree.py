@@ -215,8 +215,8 @@ class KDTree():
         zf = zipfile.ZipFile(out,"w")
         for root, dirs, files in os.walk(self.tmp_path):
             for file in files:
-                zf.write(os.path.join(".mmap", file))
-        zf.write(os.path.basename(self.model_file))
+                zf.write(os.path.join(root,file),os.path.join(".mmap", file))
+        zf.write(os.path.join(path,self.model_file),os.path.basename(self.model_file))
         zf.close()
 
 
