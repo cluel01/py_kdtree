@@ -7,7 +7,7 @@ import multiprocessing
 from .kdtree import KDTree
 
 class KDTreeSet():
-    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,**kwargs) -> None:       
+    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,group_prefix="",**kwargs) -> None:       
         if isinstance(indexes,np.ndarray):
             if len(indexes.shape) == 2:
                 indexes = indexes.tolist()
@@ -21,43 +21,20 @@ class KDTreeSet():
         self.model_name = model_name
         self.verbose = verbose
         self.dtype = dtype
+        self.group_prefix = group_prefix
 
         self.trees = {}
 
         self.path = path
         if path is None:
             self.path = os.getcwd()
-
-
-        # Check if all models exist
-        exists = True
-        for i in indexes:
-            dname = "_".join([str(j) for j in i])
-            full = os.path.join(path,dname)
-
-            if not os.path.isdir(full):
-                exists = False
-                break
-            else:
-                tree_file = os.path.join(full,model_name)
-                if os.path.isfile(tree_file):
-                    exists = False
-                    break
                 
         self.trees = {}
-        if exists:
-            for i in indexes:
-                dname = "_".join([str(j) for j in i])
-                full = os.path.join(path,dname)
-                tree = KDTree(path=full,model_file=model_name,verbose=self.verbose)
-                self.trees[dname] = tree
-
-        else:
-            for i in indexes:
-                dname = "_".join([str(j) for j in i])
-                full = os.path.join(path,dname)
-                tree = KDTree(path=full,dtype=dtype,model_file=model_name,verbose=self.verbose,**kwargs)
-                self.trees[dname] = tree        
+        for i in indexes:
+            dname = "_".join([group_prefix + str(j) for j in i])
+            full = os.path.join(path,dname)
+            tree = KDTree(path=full,dtype=dtype,model_file=model_name,verbose=self.verbose,**kwargs)
+            self.trees[dname] = tree  
 
 
     def __len__(self):
@@ -65,7 +42,7 @@ class KDTreeSet():
 
     def fit(self,X):    
         for i in self.indexes:
-            dname = "_".join([str(j) for j in i])
+            dname = "_".join([self.group_prefix + str(j) for j in i])
             if self.trees[dname].tree is not None:
                 if self.verbose:
                     print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
@@ -78,7 +55,7 @@ class KDTreeSet():
             parts_path = self.path
 
         for i in self.indexes:
-            dname = "_".join([str(j) for j in i])
+            dname = "_".join([self.group_prefix + str(j) for j in i])
             if self.trees[dname].tree is not None:
                 if self.verbose:
                     print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
@@ -101,7 +78,7 @@ class KDTreeSet():
             maxs = maxs.astype(self.dtype)
 
         #query stuff
-        dname = "_".join([str(j) for j in idx])
+        dname = "_".join([self.group_prefix + str(j) for j in idx])
         inds, pts = self.trees[dname].query_box(mins,maxs)
 
         return inds,pts
