@@ -16,7 +16,7 @@ idxs = [[0,1,2],[3,4,5,6],[0,1,3]]
 
 ens = KDTreeSet(idxs,leaf_size=20,path="/home/cluelf/py_kdtree/run",dtype="float32")
 
-ens.fit_seq(x_files,n_chached=3)
+ens.fit_seq(x_files,n_cached=3)
 #ens.fit(np.vstack([x1,x2]))
 
 
