@@ -96,7 +96,7 @@ class KDTreeSet():
     ncached_idx - defines the number of indices are stored at once in memory
     '''
 
-    def fit_seq(self,X_parts_list,parts_path=None,n_chached=1):
+    def fit_seq(self,X_parts_list,parts_path=None,n_cached=1):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if not self.trained:
@@ -112,7 +112,7 @@ class KDTreeSet():
 
             c = 0
             while c < len(idxs):
-                sub = idxs[c:c+n_chached]
+                sub = idxs[c:c+n_cached]
                 flat_idx = [item for sublist in sub for item in sublist] #Flatten list
                 data = []
                 for f in X_parts_list:
@@ -130,9 +130,9 @@ class KDTreeSet():
                     end = start+len(sub[i])
                     gname = "_".join([self.group_prefix + str(j) for j in sub[i]])
                     if self.verbose:
-                        print(f"INFO: model {gname} is trained")
+                        print(f"INFO: Model {gname} is trained")
                     self.trees[gname].fit(X[:,start:end])
-                c += n_chached
+                c += n_cached
 
             self.trained = True
         else:
