@@ -15,8 +15,11 @@ class KDTreeSet():
                 raise Exception("Indexes needs to be a 2D array!")
         elif not isinstance(indexes,list):
             raise Exception("No known datatype for indexes")
-        
-        self.indexes = indexes
+
+        #remove duplicates
+        idx_set = set(tuple(x) for x in indexes)
+        self.indexes = [ list(x) for x in idx_set ]
+
         self.n = len(indexes)
         self.model_name = model_name
         self.verbose = verbose
@@ -160,6 +163,13 @@ class KDTreeSet():
             print(f"INFO: query finished in {end-start} seconds")
 
         return i_list,p_list
+
+    def compress_models(self,path=None,zipname="model"):
+        if path is None:
+            path = self.path
+        for k,v in self.trees.items():
+            zname = zipname + k + ".zip"
+            v.compress_model(path,zname)
             
 
 
