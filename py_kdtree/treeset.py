@@ -8,7 +8,7 @@ import sys
 from .kdtree import KDTree
 
 class KDTreeSet():
-    def __init__(self,indexes,model_file=None,path=None,dtype="float64",verbose=True,**kwargs) -> None:       
+    def __init__(self,indexes,model_file=None,path=None,dtype="float64",verbose=True,group_prefix="",**kwargs) -> None:       
         if isinstance(indexes,np.ndarray):
             if len(indexes.shape) == 2:
                 indexes = indexes.tolist()
@@ -21,6 +21,8 @@ class KDTreeSet():
         self.n = len(indexes)
         self.verbose = verbose
         self.trees = {}
+
+        self.group_prefix = group_prefix
 
         self.path = path
         if path is None:
@@ -37,10 +39,11 @@ class KDTreeSet():
         if not os.path.isfile(self.model_file):
             h5f = h5py.File(self.model_file, 'w')
             h5f.attrs["dtype"] = dtype
+            h5f.attrs["group_prefix"] = group_prefix
             
 
             for i in indexes:
-                gname = "_".join([str(j) for j in i])
+                gname = "_".join([group_prefix + str(j) for j in i])
                 grp = h5f.create_group(gname)
                 grp.attrs["features"] = i
 
@@ -51,8 +54,9 @@ class KDTreeSet():
         else:
             h5f = h5py.File(self.model_file, 'a')
             dtype = h5f.attrs["dtype"]
+            self.group_prefix = h5f.attrs["group_prefix"]
             for i in indexes:
-                gname = "_".join([str(j) for j in i])
+                gname = "_".join([group_prefix + str(j) for j in i])
                 if not gname in h5f:
                     raise Exception(f"Index {str(i)} is missing in existing file {self.model_file}. Create new model with the required indexes by providing a different <model_file>!")
                 self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose)
@@ -68,7 +72,7 @@ class KDTreeSet():
 
         if not self.trained:
             for i in self.indexes:
-                gname = "_".join([str(j) for j in i])
+                gname = "_".join([self.group_prefix + str(j) for j in i])
                 self.trees[gname].fit(X[:,i])
             self.trained = True
         else:
@@ -96,7 +100,7 @@ class KDTreeSet():
                     data.append(x)
 
                 X = np.vstack(data)          
-                gname = "_".join([str(j) for j in i])
+                gname = "_".join([self.group_prefix + str(j) for j in i])
                 self.trees[gname].fit(X)
 
             self.trained = True
@@ -113,7 +117,7 @@ class KDTreeSet():
             maxs = maxs.astype(self.dtype)
 
         #query stuff
-        gname = "_".join([str(j) for j in idx])
+        gname = "_".join([self.group_prefix + str(j) for j in idx])
         inds, pts = self.trees[gname].query_box(mins,maxs)
 
         return inds,pts
