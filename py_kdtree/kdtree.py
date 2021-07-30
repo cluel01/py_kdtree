@@ -206,7 +206,7 @@ class KDTree():
         return (2*i)+1, (2*i)+2
 
     # Compress model + mmap files to make it easier to transfer 
-    def compress_model(self,path=None,zipname="model"):
+    def compress_model(self,path=None,zipname="model",folder=""):
         if path is None:
             path = self.path
         if not zipname.endswith(".zip"):
@@ -215,8 +215,9 @@ class KDTree():
         zf = zipfile.ZipFile(out,"w")
         for root, dirs, files in os.walk(self.tmp_path):
             for file in files:
-                zf.write(os.path.join(root,file),os.path.join(".mmap", file))
-        zf.write(os.path.join(path,self.model_file),os.path.basename(self.model_file))
+                zf.write(os.path.join(root,file),os.path.join(folder,".mmap", file))
+        out_model = os.path.join(folder,os.path.basename(self.model_file))
+        zf.write(os.path.join(path,self.model_file),out_model)
         zf.close()
 
 

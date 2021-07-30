@@ -175,7 +175,7 @@ class KDTreeSet():
             path = self.path
         for k,v in self.trees.items():
             zname = zipname + k + ".zip"
-            v.compress_model(path,zname)
+            v.compress_model(path,zname,folder=k)
             
 
 
