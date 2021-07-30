@@ -127,7 +127,7 @@ class KDTree():
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
-        return indices,np.array(points)
+        return indices,np.array(points,dtype=self.dtype)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
@@ -173,10 +173,15 @@ class KDTree():
     def _load(self):
         with open(self.model_file, 'rb') as file:
             new = pickle.load(file)
-        verbose = self.verbose
-        # To dont overwrite verbosity of model
-        self.__dict__.update(new.__dict__)
-        self.verbose = verbose
+
+        self.tree = new.tree
+
+        #TODO merge attributes into one
+        self.depth = new.depth
+        self.leaf_size = new.leaf_size
+        self.n_leaves = new.n_leaves
+        self.n_nodes = new.n_nodes
+        self._dim = new._dim
 
     def _save(self):
         with open(self.model_file, 'wb') as file:
