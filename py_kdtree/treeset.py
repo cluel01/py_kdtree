@@ -83,7 +83,7 @@ class KDTreeSet():
 
 
     # Fitting the trees in sequential manner when X is too large to fit into memory as a whole
-    def fit_seq(self,X_parts_list,parts_path=None):
+    def fit_seq(self,X_parts_list,parts_path=None,chunksize=None):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if not self.trained:
