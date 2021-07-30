@@ -1,4 +1,5 @@
 import numpy as np
+#import torch
 import os
 import time
 import sys
@@ -79,6 +80,7 @@ class KDTreeSet():
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
                     x = np.load(fname)[:,flat_idx]
+                    #x = torch.load(fname)[:,flat_idx].detach().numpy()
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
                     data.append(x)
@@ -89,6 +91,8 @@ class KDTreeSet():
                     start = len([item for sublist in sub[:i] for item in sublist])
                     end = start+len(sub[i])
                     dname = dname = "_".join([self.group_prefix + str(j) for j in sub[i]])
+                    if self.verbose:
+                        print(f"INFO: Model {dname} is trained")
                     self.trees[dname].fit(X[:,start:end])
                 c += n_cached
 
