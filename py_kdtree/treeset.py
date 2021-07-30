@@ -1,4 +1,5 @@
 import numpy as np
+#import torch
 import os
 import h5py
 import time
@@ -76,6 +77,8 @@ class KDTreeSet():
                 gname = "_".join([self.group_prefix + str(j) for j in i])
                 tree = self.trees[gname]
                 if not tree.trained:
+                    if self.verbose:
+                        print(f"INFO: model {gname} is trained")
                     tree.fit(X[:,i])
                 else:
                     if self.verbose:
@@ -114,6 +117,7 @@ class KDTreeSet():
                 data = []
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
+                    #x = torch.load(fname)[:,flat_idx].detach().numpy()
                     x = np.load(fname)[:,flat_idx]
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
@@ -125,6 +129,8 @@ class KDTreeSet():
                     start = len([item for sublist in sub[:i] for item in sublist])
                     end = start+len(sub[i])
                     gname = "_".join([self.group_prefix + str(j) for j in sub[i]])
+                    if self.verbose:
+                        print(f"INFO: model {gname} is trained")
                     self.trees[gname].fit(X[:,start:end])
                 c += n_chached
 
