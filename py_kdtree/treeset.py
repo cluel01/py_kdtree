@@ -51,6 +51,8 @@ class KDTreeSet():
                 if self.verbose:
                     print("INFO: Skip tree fit, model already existing - Change <path> in case of a new model!")
             else:
+                if self.verbose:
+                    print(f"INFO: model {dname} is trained")
                 self.trees[dname].fit(X[:,i])
 
 
