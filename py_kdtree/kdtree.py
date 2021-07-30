@@ -3,6 +3,7 @@ import numpy as np
 import math
 import os
 import pickle
+import zipfile
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -197,7 +198,22 @@ class KDTree():
 
     @staticmethod
     def _get_child_idx(i):
-        return (2*i)+1, (2*i)+2 
+        return (2*i)+1, (2*i)+2
+
+    # Compress model + mmap files to make it easier to transfer 
+    def compress_model(self,path=None,zipname="model"):
+        if path is None:
+            path = self.path
+        if not zipname.endswith(".zip"):
+            zipname = zipname +".zip"
+        out = os.path.join(path,zipname)
+        zf = zipfile.ZipFile(out,"w")
+        for root, dirs, files in os.walk(self.tmp_path):
+            for file in files:
+                zf.write(os.path.join(".mmap", file))
+        zf.write(os.path.basename(self.model_file))
+        zf.close()
+
 
 
 
