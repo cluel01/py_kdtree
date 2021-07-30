@@ -16,12 +16,16 @@ class KDTreeSet():
                 raise Exception("Indexes needs to be a 2D array!")
         elif not isinstance(indexes,list):
             raise Exception("No known datatype for indexes")
-        
-        self.indexes = indexes
+
+        #remove duplicates
+        idx_set = set(tuple(x) for x in indexes)
+        self.indexes = [ list(x) for x in idx_set ]
+
         self.n = len(indexes)
         self.verbose = verbose
         self.trees = {}
 
+        self.dtype = dtype
         self.group_prefix = group_prefix
 
         self.path = path
@@ -40,28 +44,25 @@ class KDTreeSet():
             h5f = h5py.File(self.model_file, 'w')
             h5f.attrs["dtype"] = dtype
             h5f.attrs["group_prefix"] = group_prefix
-            
-
-            for i in indexes:
-                gname = "_".join([group_prefix + str(j) for j in i])
-                grp = h5f.create_group(gname)
-                grp.attrs["features"] = i
-
-                t = KDTree(path=self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose,
-                            **kwargs)
-                self.trees[gname] = t
-            self.trained = False
         else:
             h5f = h5py.File(self.model_file, 'a')
-            dtype = h5f.attrs["dtype"]
+            self.dtype = h5f.attrs["dtype"]
             self.group_prefix = h5f.attrs["group_prefix"]
-            for i in indexes:
-                gname = "_".join([group_prefix + str(j) for j in i])
-                if not gname in h5f:
-                    raise Exception(f"Index {str(i)} is missing in existing file {self.model_file}. Create new model with the required indexes by providing a different <model_file>!")
-                self.trees[gname] = KDTree(self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=dtype,verbose=verbose)
-            self.trained = True
-        self.dtype = dtype
+            
+        self.trained = True
+        for i in indexes:
+            gname = "_".join([self.group_prefix + str(j) for j in i])
+
+            if not gname in h5f:
+                grp = h5f.create_group(gname)
+                grp.attrs["features"] = i
+            
+            t = KDTree(path=self.path,model_file=os.path.basename(self.model_file),h5group=gname,dtype=self.dtype,verbose=self.verbose,
+                        **kwargs)
+            if not t.trained:
+                self.trained = False
+            self.trees[gname] = t
+
         h5f.close()
 
     def __len__(self):
@@ -73,7 +74,12 @@ class KDTreeSet():
         if not self.trained:
             for i in self.indexes:
                 gname = "_".join([self.group_prefix + str(j) for j in i])
-                self.trees[gname].fit(X[:,i])
+                tree = self.trees[gname]
+                if not tree.trained:
+                    tree.fit(X[:,i])
+                else:
+                    if self.verbose:
+                        print(f"INFO: skipping model {gname} as it is already trained!")
             self.trained = True
         else:
             if self.verbose:
@@ -83,25 +89,44 @@ class KDTreeSet():
 
 
     # Fitting the trees in sequential manner when X is too large to fit into memory as a whole
-    def fit_seq(self,X_parts_list,parts_path=None,chunksize=None):
+    '''
+    ncached_idx - defines the number of indices are stored at once in memory
+    '''
+
+    def fit_seq(self,X_parts_list,parts_path=None,n_chached=1):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if not self.trained:
             if parts_path is None:
                 parts_path = self.path
 
+            #Filter trained idxs
+            idxs = []
             for i in self.indexes:
+                gname = "_".join([self.group_prefix + str(j) for j in i])
+                if self.trees[gname].trained == False:
+                    idxs.append(i)
+
+            c = 0
+            while c < len(idxs):
+                sub = idxs[c:c+n_chached]
+                flat_idx = [item for sublist in sub for item in sublist] #Flatten list
                 data = []
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
-                    x = np.load(fname)[:,i]
+                    x = np.load(fname)[:,flat_idx]
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
                     data.append(x)
+                X = np.vstack(data)
 
-                X = np.vstack(data)          
-                gname = "_".join([self.group_prefix + str(j) for j in i])
-                self.trees[gname].fit(X)
+                #Train models
+                for i in range(len(sub)):
+                    start = len([item for sublist in sub[:i] for item in sublist])
+                    end = start+len(sub[i])
+                    gname = "_".join([self.group_prefix + str(j) for j in sub[i]])
+                    self.trees[gname].fit(X[:,start:end])
+                c += n_chached
 
             self.trained = True
         else:

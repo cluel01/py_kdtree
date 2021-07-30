@@ -39,6 +39,7 @@ class KDTree():
         self.h5group = h5group
 
         self.tree = None
+        self.trained = False
 
         if model_file is None:
             self.model_file = os.path.join(path,"kdtree.h5")
@@ -64,6 +65,7 @@ class KDTree():
                 self.n_nodes = dt.attrs["n_nodes"]
                 self.n_leaves = dt.attrs["n_leaves"]
                 self.leaf_size = dt.attrs["leaf_size"]
+                self.trained = True
 
         else:
             if h5group is not None:
@@ -112,6 +114,9 @@ class KDTree():
         self._build_tree(X, I)
         end = time.time()
         self.tree = self.tree[()]
+
+        self.trained = True
+
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
         h5f.close()
