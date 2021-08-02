@@ -42,9 +42,8 @@ class KDTree():
                 print(f"INFO: Load existing model under {self.model_file}")
             self._load()
 
-            if leaf_size != self.leaf_size:
-                self.org_leave_size = leaf_size
-                print("WARNING: input leaf size is not matching with leaf size of loaded model!")
+            #keep track if the input leaf size matches the loaded 
+            self.org_leaf_size = leaf_size
 
     
     def fit(self, X):
@@ -60,8 +59,7 @@ class KDTree():
                 filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
                 for f in filelist:
                     os.remove(os.path.join(self.tmp_path, f))
-            if hasattr(self,"org_leave_size"):
-                self.leaf_size = self.org_leave_size
+            self.leaf_size = self.org_leaf_size
 
         I = np.array(range(len(X)))
 
