@@ -172,13 +172,6 @@ class KDTreeSet():
 
         return i_list,p_list
 
-    def compress_models(self,path=None,zipname="model"):
-        if path is None:
-            path = self.path
-        for k,v in self.trees.items():
-            zname = zipname + k + ".zip"
-            v.compress_model(path,zname,folder=k)
-            
 
 
 
