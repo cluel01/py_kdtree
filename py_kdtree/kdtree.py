@@ -41,6 +41,11 @@ class KDTree():
             if self.verbose:
                 print(f"INFO: Load existing model under {self.model_file}")
             self._load()
+
+            if leaf_size != self.leaf_size:
+                self.org_leave_size = leaf_size
+                print("WARNING: input leaf size is not matching with leaf size of loaded model!")
+
     
     def fit(self, X):
         self._dim = len(X[0])
@@ -55,6 +60,8 @@ class KDTree():
                 filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
                 for f in filelist:
                     os.remove(os.path.join(self.tmp_path, f))
+            if hasattr(self,"org_leave_size"):
+                self.leaf_size = self.org_leave_size
 
         I = np.array(range(len(X)))
 
@@ -131,7 +138,7 @@ class KDTree():
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
-            #points = np.empty((0,self._dim))
+    
             points = []
         if indices is None:
             indices = []
@@ -139,16 +146,9 @@ class KDTree():
         l_idx,r_idx = self._get_child_idx(idx)
         
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
-            # is partition fully contained by box
             bounds = self.tree[idx]
-            if (np.all(bounds[:,0] >= mins)) and (np.all(bounds[:,1] <= maxs)):
-                lf_idx = self.n_nodes-self.n_leaves-idx
-                pts = self._get_pts(lf_idx)
-                indices.extend(pts[:,0].astype(np.int64))
-                points.extend(pts[:,1:])
-                return indices,points
             #intersects
-            elif not ( np.any(bounds[:,0] > maxs) ) or ( np.any(bounds[:,1] < mins )):
+            if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
                 lf_idx = self.n_nodes-self.n_leaves-idx
                 pts = self._get_pts(lf_idx)
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
@@ -162,10 +162,10 @@ class KDTree():
         r_bounds = self.tree[r_idx]
 
         #if at least intersects
-        if not ( np.any(l_bounds[:,0] > maxs) ) or ( np.any(l_bounds[:,1] < mins )):
+        if (np.all(l_bounds[:,1] >= mins )) and (np.all(maxs >= l_bounds[:,0])):
             self._recursive_search(l_idx,mins,maxs,indices,points)
 
-        if not ( np.any(r_bounds[:,0] > maxs) ) or ( np.any(r_bounds[:,1] < mins )):
+        if (np.all(r_bounds[:,1] >= mins )) and (np.all(maxs >= r_bounds[:,0])):
             self._recursive_search(r_idx,mins,maxs,indices,points)
 
         return indices,points
