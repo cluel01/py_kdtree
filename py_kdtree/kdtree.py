@@ -183,24 +183,17 @@ class KDTree():
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
+    
             points = []
         if indices is None:
             indices = []
 
         l_idx,r_idx = self._get_child_idx(idx)
         
-        #if leaf
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
-            # is partition fully contained by box
             bounds = self.tree[idx]
-            if (np.all(bounds[:,0] >= mins)) and (np.all(bounds[:,1] <= maxs)):
-                lf_idx = self.n_nodes-self.n_leaves-idx
-                pts = self.leaves[lf_idx]
-                indices.extend(pts[:,0].astype(np.int64))
-                points.extend(pts[:,1:])
-                return indices,points
             #intersects
-            elif not ( np.any(bounds[:,0] > maxs) ) or ( np.any(bounds[:,1] < mins )):
+            if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
                 lf_idx = self.n_nodes-self.n_leaves-idx
                 pts = self.leaves[lf_idx]
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
@@ -214,10 +207,10 @@ class KDTree():
         r_bounds = self.tree[r_idx]
 
         #if at least intersects
-        if not ( np.any(l_bounds[:,0] > maxs) ) or ( np.any(l_bounds[:,1] < mins )):
+        if (np.all(l_bounds[:,1] >= mins )) and (np.all(maxs >= l_bounds[:,0])):
             self._recursive_search(l_idx,mins,maxs,indices,points)
 
-        if not ( np.any(r_bounds[:,0] > maxs) ) or ( np.any(r_bounds[:,1] < mins )):
+        if (np.all(r_bounds[:,1] >= mins )) and (np.all(maxs >= r_bounds[:,0])):
             self._recursive_search(r_idx,mins,maxs,indices,points)
 
         return indices,points
