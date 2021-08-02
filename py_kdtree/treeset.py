@@ -160,8 +160,10 @@ class KDTreeSet():
         for i in range(len(idxs)):
             inds, pts = results[i]
             #get inds not part of i_list so far
-            new_idx = np.where(np.in1d(inds,i_list) == False)
-            i_list.extend(np.array(inds)[new_idx])
+            new_idx = np.arange(len(inds))
+            if len(i_list) > 0:
+                new_idx = np.where(np.in1d(inds,i_list) == False)
+            i_list.extend(np.array(inds,dtype=np.int64)[new_idx])
             if no_pts == False:
                 p_list.append(pts[new_idx])
         end = time.time()

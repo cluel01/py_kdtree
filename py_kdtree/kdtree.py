@@ -93,7 +93,7 @@ class KDTree():
                 nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
                 pts = np.vstack([pts,nan])
             
-            lf_idx = self.n_nodes-self.n_leaves-idx
+            lf_idx = self.n_leaves+idx-self.n_nodes
             filename = os.path.join(self.tmp_path, "mem"+str(lf_idx)+".mmap")
             fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=pts.shape)
             fp[:] = pts[:]
@@ -147,7 +147,7 @@ class KDTree():
             bounds = self.tree[idx]
             #intersects
             if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
-                lf_idx = self.n_nodes-self.n_leaves-idx
+                lf_idx = self.n_leaves+idx-self.n_nodes
                 pts = self._get_pts(lf_idx)
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
                 indices.extend(pts[:,0][mask].astype(np.int64))
@@ -180,6 +180,7 @@ class KDTree():
         self.n_leaves = new.n_leaves
         self.n_nodes = new.n_nodes
         self._dim = new._dim
+        self.dtype = str(self.tree.dtype)
 
     def _save(self):
         with open(self.model_file, 'wb') as file:
