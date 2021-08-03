@@ -1,5 +1,5 @@
 import numpy as np
-#import torch
+import torch
 import os
 import time
 import sys
@@ -81,8 +81,8 @@ class KDTreeSet():
                 data = []
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
-                    x = np.load(fname)[:,flat_idx]
-                    #x = torch.load(fname)[:,flat_idx].detach().numpy()
+                    #x = np.load(fname)[:,flat_idx]
+                    x = torch.load(fname)[:,flat_idx].detach().numpy()
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
                     data.append(x)
@@ -172,6 +172,52 @@ class KDTreeSet():
 
         return i_list,p_list
 
+    def multi_query_ranked(self,mins,maxs,idxs,n_jobs=-1):
+        if isinstance(mins,np.ndarray):
+            if mins.dtype != np.dtype(self.dtype):
+                mins = mins.astype(self.dtype)
+
+        if isinstance(maxs,np.ndarray):       
+            if maxs.dtype != np.dtype(self.dtype):
+                maxs = maxs.astype(self.dtype)
+
+        start = time.time()
+
+        if n_jobs == -1:
+            total_cpus = os.cpu_count()
+            if total_cpus > len(idxs):
+                n_jobs = len(idxs)
+            else:
+                n_jobs = total_cpus
+        else:
+            n_jobs = n_jobs
+
+        params = [x for i in range(len(idxs))  for x in [[mins[i],maxs[i],idxs[i]]]]
+
+        pool = multiprocessing.Pool(n_jobs)
+
+        try:
+            results = pool.starmap(self.query,params)
+        except  Exception as e:
+            print(f"Warning: Error in query! \n {e}")
+            pool.close()
+            sys.exit()
+        pool.close()
+        pool.join()
+
+        i_list = []
+        for i in range(len(idxs)):
+            inds, _ = results[i]
+            i_list.extend(inds)
+
+        inds, counts = np.unique(i_list,return_counts=True)
+        order = np.argsort(-counts)
+                
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
+
+        return inds[order],counts[order]
 
 
 
