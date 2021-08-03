@@ -37,6 +37,11 @@ print(len(np.unique(inds)))
 
 idxs = [[0,1,4]]
 
+f = ens.trees["0_1_2"].mmap_file
+sh = ens.trees["0_1_2"].mmap_shape
+print(sh)
+fp = np.memmap(filename=f, dtype=np.float64, mode='r', shape=sh) 
+print(fp[10,10:100,:])
 
 
 ens = KDTreeSet(idxs,leaf_size=2000,path="/home/cluelf/py_kdtree/run",dtype="float32")
