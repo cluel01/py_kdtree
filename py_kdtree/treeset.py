@@ -60,7 +60,7 @@ class KDTreeSet():
     ncached_idx - defines the number of indices are stored at once in memory
     '''
 
-    def fit_seq(self,X_parts_list,parts_path=None,n_cached=1):
+    def fit_seq(self,X_parts_list,parts_path=None,n_cached=1,data_driver="npy"):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if parts_path is None:
@@ -81,8 +81,12 @@ class KDTreeSet():
                 data = []
                 for f in X_parts_list:
                     fname = os.path.join(parts_path,f)
-                    #x = np.load(fname)[:,flat_idx]
-                    x = torch.load(fname)[:,flat_idx].detach().numpy()
+                    if data_driver == "npy":
+                        x = np.load(fname)[:,flat_idx]
+                    elif data_driver == "torch":
+                        x = torch.load(fname)[:,flat_idx].detach().numpy()
+                    else:
+                        raise Exception(f"Not existing data driver {data_driver}!")
                     if x.dtype != np.dtype(self.dtype):
                         x = x.astype(self.dtype)
                     data.append(x)
@@ -218,6 +222,17 @@ class KDTreeSet():
             print(f"INFO: query finished in {end-start} seconds")
 
         return inds[order],counts[order]
+
+    def get_fitted_trees(self,array=False):
+        fitted_trees = []
+        for k,v in self.trees.items():
+            if v.tree is not None:
+                fitted_trees.append(v)
+        if array:
+            arr = np.array([np.array(i.split("_"),dtype=int) for i in fitted_trees])
+            return arr
+        return fitted_trees
+
 
 
 
