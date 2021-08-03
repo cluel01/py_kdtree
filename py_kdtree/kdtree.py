@@ -67,15 +67,18 @@ class KDTree():
         self.tree = np.empty((self.n_nodes,self._dim,2),dtype=self.dtype)
         self.mmap_shape = (self.n_leaves,self.leaf_size,self._dim+1)
 
+        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
+
         start = time.time()
-        self._build_tree(X, I)
+        self._build_tree(X, I,mmap)
         end = time.time()
+        #mmap.flush()
         self._save()
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
 
 
-    def _build_tree(self, pts, indices, depth=0,idx=0):
+    def _build_tree(self, pts, indices,mmap, depth=0,idx=0):
         #if root
         if idx == 0: 
             self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
@@ -91,7 +94,7 @@ class KDTree():
                 pts = np.vstack([pts,nan])
             
             lf_idx = self.n_leaves+idx-self.n_nodes
-            self._write_mmap(lf_idx,pts)
+            mmap[lf_idx,:] = pts[:]
             return 
         
         axis = depth % self._dim
@@ -112,8 +115,8 @@ class KDTree():
         self.tree[l_idx] = l_bounds
         self.tree[r_idx] = r_bounds
 
-        self._build_tree(pts[:midx,:], indices[:midx], depth+1,l_idx)
-        self._build_tree(pts[midx:,:], indices[midx:], depth+1,r_idx)
+        self._build_tree(pts[:midx,:], indices[:midx],mmap, depth+1,l_idx)
+        self._build_tree(pts[midx:,:], indices[midx:],mmap, depth+1,r_idx)
 
 
     def query_box(self,mins,maxs):
@@ -191,12 +194,7 @@ class KDTree():
     def _get_pts(self,lf_idx):
         fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape) 
         return fp[lf_idx,:,:]
-    
-    def _write_mmap(self,lf_idx,data):
-        fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
-        fp[lf_idx,:] = data[:]
-        #fp.flush()
-        
+            
     @staticmethod
     def _get_child_idx(i):
         return (2*i)+1, (2*i)+2
