@@ -227,7 +227,7 @@ class KDTreeSet():
         fitted_trees = []
         for k,v in self.trees.items():
             if v.tree is not None:
-                fitted_trees.append(v)
+                fitted_trees.append(k)
         if array:
             arr = np.array([np.array(i.split("_"),dtype=int) for i in fitted_trees])
             return arr
