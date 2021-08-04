@@ -176,8 +176,11 @@ class KDTreeSet():
         if path is None:
             path = self.path
         for k,v in self.trees.items():
-            zname = zipname + k + ".zip"
-            v.compress_model(path,zname,folder=k)
+            if v.tree is not None:
+                if self.verbose:
+                    print(f"INFO: Export model {k}")
+                zname = zipname + k + ".zip"
+                v.compress_model(path,zname,folder=k)
             
 
 
