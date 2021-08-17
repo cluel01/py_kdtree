@@ -194,6 +194,11 @@ class KDTree():
     def _get_pts(self,lf_idx):
         fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape) 
         return fp[lf_idx,:,:]
+
+    #Returns config parameters of model required to load the model
+    def get_file_cfg(self):
+        return {"path":self.path,"mmap_file":self.mmap_file,"model_file":self.model_file,
+                "verbose":self.verbose} 
             
     @staticmethod
     def _get_child_idx(i):
