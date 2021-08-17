@@ -4,8 +4,10 @@ import os
 import time
 import sys
 import os 
-import multiprocessing
+#import multiprocessing
+from multiprocessing.pool import ThreadPool
 from .kdtree import KDTree
+
 
 class KDTreeSet():
     def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,group_prefix="",**kwargs) -> None:       
@@ -120,6 +122,8 @@ class KDTreeSet():
         return inds,pts
 
     '''
+    Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
+
     Input:
     mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
                     -> lists required for varying dims of indices
@@ -145,12 +149,13 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = [x for i in range(len(idxs))  for x in [[mins[i],maxs[i],idxs[i]]]]
+        params = self._create_params(mins,maxs,idxs)
 
-        pool = multiprocessing.Pool(n_jobs)
+        #pool = multiprocessing.Pool(n_jobs)
+        pool = ThreadPool(n_jobs)
 
         try:
-            results = pool.starmap(self.query,params)
+            results = pool.starmap(_static_query,params)
         except  Exception as e:
             print(f"Warning: Error in query! \n {e}")
             pool.close()
@@ -161,6 +166,7 @@ class KDTreeSet():
         i_list = []
         # To account for returned pts of different dimensionality 
         p_list = []
+
         for i in range(len(idxs)):
             inds, pts = results[i]
             #get inds not part of i_list so far
@@ -196,12 +202,13 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = [x for i in range(len(idxs))  for x in [[mins[i],maxs[i],idxs[i]]]]
+        params = self._create_params(mins,maxs,idxs)
 
-        pool = multiprocessing.Pool(n_jobs)
+        #pool = multiprocessing.Pool(n_jobs)
+        pool = ThreadPool(n_jobs)
 
         try:
-            results = pool.starmap(self.query,params)
+            results = pool.starmap(_static_query,params)
         except  Exception as e:
             print(f"Warning: Error in query! \n {e}")
             pool.close()
@@ -209,10 +216,7 @@ class KDTreeSet():
         pool.close()
         pool.join()
 
-        i_list = []
-        for i in range(len(idxs)):
-            inds, _ = results[i]
-            i_list.extend(inds)
+        i_list = np.concatenate([i[0] for i in results])
 
         inds, counts = np.unique(i_list,return_counts=True)
         order = np.argsort(-counts)
@@ -232,6 +236,22 @@ class KDTreeSet():
             arr = np.array([np.array(i.split("_"),dtype=int) for i in fitted_trees])
             return arr
         return fitted_trees
+
+    def _create_params(self,mins,maxs,idxs):
+        params = []
+        for i in range(len(idxs)):
+            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
+            cfg_dict = self.trees[dname].get_file_cfg()
+            params.append([cfg_dict,mins[i],maxs[i]])
+        return params
+
+def _static_query(cfg,mins,maxs):
+    #To be executed silently
+    cfg["verbose"] = False
+    tree = KDTree(**cfg)
+    inds, pts = tree.query_box(mins,maxs)
+    return inds,pts  
+           
 
 
 
