@@ -182,7 +182,7 @@ class KDTreeSet():
 
         return i_list,p_list
 
-    def multi_query_ranked(self,mins,maxs,idxs,n_jobs=-1):
+    def multi_query_ranked(self,mins,maxs,idxs):
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
                 mins = mins.astype(self.dtype)
@@ -193,32 +193,14 @@ class KDTreeSet():
 
         start = time.time()
 
-        if n_jobs == -1:
-            total_cpus = os.cpu_count()
-            if total_cpus > len(idxs):
-                n_jobs = len(idxs)
-            else:
-                n_jobs = total_cpus
-        else:
-            n_jobs = n_jobs
+        inds = []
 
-        params = self._create_params(mins,maxs,idxs)
+        for i in range(len(idxs)):
+            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
+            i, _ = self.trees[dname].query_box(mins[i],maxs[i])
+            inds.extend(i)
 
-        #pool = multiprocessing.Pool(n_jobs)
-        pool = ThreadPool(n_jobs)
-
-        try:
-            results = pool.starmap(_static_query,params)
-        except  Exception as e:
-            print(f"Warning: Error in query! \n {e}")
-            pool.close()
-            sys.exit()
-        pool.close()
-        pool.join()
-
-        i_list = np.concatenate([i[0] for i in results])
-
-        inds, counts = np.unique(i_list,return_counts=True)
+        inds, counts = np.unique(inds,return_counts=True)
         order = np.argsort(-counts)
                 
         end = time.time()

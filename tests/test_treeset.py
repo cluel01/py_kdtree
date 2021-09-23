@@ -26,7 +26,7 @@ print(len(pts))
 inds,pts = ens.query(np.array([0,0,0]),np.array([0.5,.1,.1]),idxs[0])
 inds,pts = ens.query(np.array([0.5,0.5,0.3]),np.array([0.5,0.5,0.4]),idxs[2])
 
-inds,cnts = ens.multi_query_ranked(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.3],[0.5,0.5,0.4]]),[idxs[i] for i in [0,2]],n_jobs=1)
+inds,cnts = ens.multi_query_ranked(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.3],[0.5,0.5,0.4]]),[idxs[i] for i in [0,2]])
 print(len(inds))
 print(len(np.unique(inds)))
 print(cnts)

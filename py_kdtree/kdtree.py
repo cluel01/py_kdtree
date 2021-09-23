@@ -192,8 +192,12 @@ class KDTree():
         return d
 
     def _get_pts(self,lf_idx):
-        fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape) 
-        return fp[lf_idx,:,:]
+        fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+        leaf = fp[lf_idx,:,:]
+        if leaf[-1,0] == -1:
+            return leaf[:-1,:]
+        else: 
+            return leaf
 
     #Returns config parameters of model required to load the model
     def get_file_cfg(self):
