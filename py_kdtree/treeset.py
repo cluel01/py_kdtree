@@ -109,6 +109,59 @@ class KDTreeSet():
             if self.verbose:
                 print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
+
+    def fit_seq_mmap(self,X_parts_list,size,n_cached=1,parts_path=None,data_driver="npy"):
+        assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
+
+        if parts_path is None:
+            parts_path = self.path
+
+        #Filter trained idxs
+        idxs = []
+        for i in self.indexes:
+            dname = "_".join([self.group_prefix + str(j) for j in i])
+            if self.trees[dname].tree is None:
+                idxs.append(i)     
+
+        tmp_mmap_path = os.path.join(self.path,"tmp_mmap.mmap")
+
+        if len(idxs) > 0:
+            c = 0
+            while c < len(idxs):
+                sub = idxs[c:c+n_cached]
+                flat_idx = [item for sublist in sub for item in sublist] #Flatten list
+
+                mmap = np.memmap(tmp_mmap_path, dtype=self.dtype, mode='w+', shape=(size,len(flat_idx)))
+                pointer = 0
+                for f in X_parts_list:
+                    if self.verbose:
+                        print("INFO: Load file ",f)
+                    fname = os.path.join(parts_path,f)
+                    if data_driver == "npy":
+                        x = np.load(fname)[:,flat_idx]
+                    elif data_driver == "torch":
+                        x = torch.load(fname)[:,flat_idx].detach().numpy()
+                    else:
+                        raise Exception(f"Not existing data driver {data_driver}!")
+                    if x.dtype != np.dtype(self.dtype):
+                        x = x.astype(self.dtype)
+                    mmap[pointer:pointer+len(x),:] = x
+                    pointer += len(x)
+
+                #Train models
+                for i in range(len(sub)):
+                    start = len([item for sublist in sub[:i] for item in sublist])
+                    end = start+len(sub[i])
+                    dname = dname = "_".join([self.group_prefix + str(j) for j in sub[i]])
+                    if self.verbose:
+                        print(f"INFO: Model {dname} is trained")
+                    self.trees[dname].fit(mmap[:,start:end])
+                c += n_cached
+                os.remove(tmp_mmap_path)
+        else:
+            if self.verbose:
+                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
+
     def query(self,mins,maxs,idx):
         if mins.dtype != np.dtype(self.dtype):
             mins = mins.astype(self.dtype)
@@ -201,6 +254,51 @@ class KDTreeSet():
             inds.extend(i)
 
         inds, counts = np.unique(inds,return_counts=True)
+        order = np.argsort(-counts)
+                
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
+
+        return inds[order],counts[order]
+
+    def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
+        if isinstance(mins,np.ndarray):
+            if mins.dtype != np.dtype(self.dtype):
+                mins = mins.astype(self.dtype)
+
+        if isinstance(maxs,np.ndarray):       
+            if maxs.dtype != np.dtype(self.dtype):
+                maxs = maxs.astype(self.dtype)
+
+        start = time.time()
+
+        if n_jobs == -1:
+            total_cpus = os.cpu_count()
+            if total_cpus > len(idxs):
+                n_jobs = len(idxs)
+            else:
+                n_jobs = total_cpus
+        else:
+            n_jobs = n_jobs
+
+        params = self._create_params(mins,maxs,idxs)
+
+        #pool = multiprocessing.Pool(n_jobs)
+        pool = ThreadPool(n_jobs)
+
+        try:
+            results = pool.starmap(_static_query,params)
+        except  Exception as e:
+            print(f"Warning: Error in query! \n {e}")
+            pool.close()
+            sys.exit()
+        pool.close()
+        pool.join()
+
+        i_list = np.concatenate([i[0] for i in results])
+
+        inds, counts = np.unique(i_list,return_counts=True)
         order = np.argsort(-counts)
                 
         end = time.time()
