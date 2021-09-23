@@ -160,7 +160,7 @@ class KDTreeSet():
                         print(f"INFO: Model {dname} is trained")
                     self.trees[dname].fit(mmap[:,start:end])
                 c += n_cached
-                os.remove(tmp_mmap_path)
+                os.remove(mmap_path)
         else:
             if self.verbose:
                 print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
