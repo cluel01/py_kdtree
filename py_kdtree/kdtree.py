@@ -128,7 +128,7 @@ class KDTree():
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
-        return indices,np.array(points,dtype=self.dtype)
+        return np.array(indices,dtype=np.int64),np.array(points,dtype=self.dtype)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
