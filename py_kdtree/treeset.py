@@ -110,11 +110,16 @@ class KDTreeSet():
                 print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
 
-    def fit_seq_mmap(self,X_parts_list,size,n_cached=1,parts_path=None,data_driver="npy"):
+    def fit_seq_mmap(self,X_parts_list,size,n_cached=1,parts_path=None,mmap_path=None,data_driver="npy"):
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if parts_path is None:
             parts_path = self.path
+
+        if mmap_path is None:
+            mmap_path = os.path.join(self.path,"tmp_mmap.mmap")
+        else:
+            mmap_path = os.path.join(mmap_path,"tmp_mmap.mmap")
 
         #Filter trained idxs
         idxs = []
@@ -123,15 +128,13 @@ class KDTreeSet():
             if self.trees[dname].tree is None:
                 idxs.append(i)     
 
-        tmp_mmap_path = os.path.join(self.path,"tmp_mmap.mmap")
-
         if len(idxs) > 0:
             c = 0
             while c < len(idxs):
                 sub = idxs[c:c+n_cached]
                 flat_idx = [item for sublist in sub for item in sublist] #Flatten list
 
-                mmap = np.memmap(tmp_mmap_path, dtype=self.dtype, mode='w+', shape=(size,len(flat_idx)))
+                mmap = np.memmap(mmap_path, dtype=self.dtype, mode='w+', shape=(size,len(flat_idx)))
                 pointer = 0
                 for f in X_parts_list:
                     if self.verbose:
