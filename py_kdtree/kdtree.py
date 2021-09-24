@@ -44,8 +44,11 @@ class KDTree():
             self.org_leaf_size = leaf_size
 
     
-    def fit(self, X):
-        self._dim = len(X[0])
+    def fit(self, X,mmap_idxs=None):
+        if mmap_idxs is None:
+            self._dim = len(X[0])
+        else:
+            self._dim = len(mmap_idxs)
         
         assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
@@ -70,7 +73,10 @@ class KDTree():
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
 
         start = time.time()
-        self._build_tree(X, I,mmap)
+        if mmap_idxs is None:
+            self._build_tree(X, I,mmap)
+        else:
+            self._build_tree_mmap(X,I,mmap,mmap_idxs)
         end = time.time()
         #mmap.flush()
         self._save()
@@ -117,6 +123,54 @@ class KDTree():
 
         self._build_tree(pts[:midx,:], indices[:midx],mmap, depth+1,l_idx)
         self._build_tree(pts[midx:,:], indices[midx:],mmap, depth+1,r_idx)
+
+    def _build_tree_mmap(self, pts, indices,mmap, pts_mmap_idxs,depth=0,idx=0):
+            #if root
+        if idx == 0: 
+            self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
+
+        bounds = self.tree[idx]
+
+        if len(indices) <= self.leaf_size:
+            #Load into memory
+            pts_sub = pts[indices,:][:,pts_mmap_idxs]
+            pts = np.c_[indices,pts_sub]
+
+            shape = pts.shape
+            if shape[0] != self.leaf_size:
+                nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
+                pts = np.vstack([pts,nan])
+            
+            lf_idx = self.n_leaves+idx-self.n_nodes
+            mmap[lf_idx,:] = pts[:]
+            return 
+        
+        axis = depth % self._dim
+        pts_axis = pts_mmap_idxs[axis]
+        
+        #Load into memory
+        pts_ax = pts[indices,pts_axis]
+
+        part = pts_ax.argsort()
+        indices = indices[part]
+        pts_ax = pts_ax[part]
+
+        midx = math.floor(len(pts_ax)/2)
+        median = pts_ax[midx]
+
+        l_bounds,r_bounds = bounds.copy(),bounds.copy()
+        l_bounds[axis,1] = median
+        r_bounds[axis,0] = median
+
+        l_idx,r_idx = self._get_child_idx(idx)
+
+        self.tree[l_idx] = l_bounds
+        self.tree[r_idx] = r_bounds
+
+        del pts_ax
+
+        self._build_tree_mmap(pts, indices[:midx],mmap,pts_mmap_idxs, depth+1,l_idx)
+        self._build_tree_mmap(pts, indices[midx:],mmap,pts_mmap_idxs, depth+1,r_idx)
 
 
     def query_box(self,mins,maxs):

@@ -158,7 +158,7 @@ class KDTreeSet():
                     dname = dname = "_".join([self.group_prefix + str(j) for j in sub[i]])
                     if self.verbose:
                         print(f"INFO: Model {dname} is trained")
-                    self.trees[dname].fit(mmap[:,start:end])
+                    self.trees[dname].fit(mmap,mmap_idxs=list(range(start,end)))
                 c += n_cached
                 os.remove(mmap_path)
         else:
