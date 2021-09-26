@@ -177,12 +177,15 @@ class KDTree():
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
+        self._leaves_visited = 0
+
         start = time.time()
         indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
-        return np.array(indices,dtype=np.int64),np.array(points,dtype=self.dtype)
+            print(f"INFO: Query loaded {self._leaves_visited} leaves")
+        return (np.array(indices,dtype=np.int64),np.array(points,dtype=self.dtype),self._leaves_visited,end-start)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
@@ -246,6 +249,7 @@ class KDTree():
         return d
 
     def _get_pts(self,lf_idx):
+        self._leaves_visited += 1
         fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
         leaf = fp[lf_idx,:,:]
         if leaf[-1,0] == -1:

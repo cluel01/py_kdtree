@@ -173,9 +173,9 @@ class KDTreeSet():
 
         #query stuff
         dname = "_".join([self.group_prefix + str(j) for j in idx])
-        inds, pts = self.trees[dname].query_box(mins,maxs)
+        inds, pts,leaves_visited,time = self.trees[dname].query_box(mins,maxs)
 
-        return inds,pts
+        return (inds,pts,leaves_visited,time)
 
     '''
     Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
@@ -223,8 +223,9 @@ class KDTreeSet():
         # To account for returned pts of different dimensionality 
         p_list = []
 
+        leaves_visited = 0
         for i in range(len(idxs)):
-            inds, pts = results[i]
+            inds, pts,lv,_ = results[i]
             #get inds not part of i_list so far
             new_idx = np.arange(len(inds))
             if len(i_list) > 0:
@@ -232,11 +233,12 @@ class KDTreeSet():
             i_list.extend(np.array(inds,dtype=np.int64)[new_idx])
             if no_pts == False:
                 p_list.append(pts[new_idx])
+            leaves_visited += lv
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
 
-        return i_list,p_list
+        return (i_list,p_list,leaves_visited,end-start)
 
     def multi_query_ranked(self,mins,maxs,idxs):
         if isinstance(mins,np.ndarray):
@@ -251,10 +253,12 @@ class KDTreeSet():
 
         inds = []
 
+        leaves_visited = 0
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
-            i, _ = self.trees[dname].query_box(mins[i],maxs[i])
+            i, _,lv,_ = self.trees[dname].query_box(mins[i],maxs[i])
             inds.extend(i)
+            leaves_visited += lv
 
         inds, counts = np.unique(inds,return_counts=True)
         order = np.argsort(-counts)
@@ -262,8 +266,9 @@ class KDTreeSet():
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
+            print(f"INFO: Query loaded {leaves_visited} leaves")
 
-        return inds[order],counts[order]
+        return (inds[order],counts[order],leaves_visited,end-start)
 
     def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
         if isinstance(mins,np.ndarray):
@@ -300,6 +305,7 @@ class KDTreeSet():
         pool.join()
 
         i_list = np.concatenate([i[0] for i in results])
+        leaves_visited = int(np.sum([i[2] for i in results]))
 
         inds, counts = np.unique(i_list,return_counts=True)
         order = np.argsort(-counts)
@@ -307,8 +313,9 @@ class KDTreeSet():
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
+            print(f"INFO: Query loaded {leaves_visited} leaves")
 
-        return inds[order],counts[order]
+        return (inds[order],counts[order],leaves_visited,end-start)
 
     def get_fitted_trees(self,array=False):
         fitted_trees = []
@@ -332,8 +339,8 @@ def _static_query(cfg,mins,maxs):
     #To be executed silently
     cfg["verbose"] = False
     tree = KDTree(**cfg)
-    inds, pts = tree.query_box(mins,maxs)
-    return inds,pts  
+    inds, pts,leaves_visited,time = tree.query_box(mins,maxs)
+    return inds,pts,leaves_visited,time
            
 
 
