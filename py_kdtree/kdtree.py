@@ -3,7 +3,6 @@ import numpy as np
 import math
 import os
 import pickle
-import zipfile
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -12,32 +11,31 @@ np.random.seed(42)
           
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,verbose=True):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,mmap_file=None,verbose=True):
         if path is None:
             path = os.getcwd()
-        
-        tmp_path = path +"/.mmap"
         
         if not os.path.isdir(path):
             os.makedirs(path)
 
-        if not os.path.isdir(tmp_path):
-            os.makedirs(tmp_path)
-
         self.path = path
-        self.tmp_path = tmp_path
         self.verbose = verbose
         self.dtype = dtype
         self.leaf_size = leaf_size
 
         self.tree = None
+
+        if mmap_file is None:
+            self.mmap_file = os.path.join(self.path,"map.mmap")
+        else:
+            self.mmap_file = os.path.join(self.path,mmap_file)
         
         if model_file is None:
             self.model_file = os.path.join(path,"tree.pkl")
         else:
             self.model_file = os.path.join(path,model_file)
 
-        if os.path.isfile(self.model_file):
+        if os.path.isfile(self.model_file) and os.path.isfile(self.mmap_file):
             if self.verbose:
                 print(f"INFO: Load existing model under {self.model_file}")
             self._load()
@@ -46,8 +44,11 @@ class KDTree():
             self.org_leaf_size = leaf_size
 
     
-    def fit(self, X):
-        self._dim = len(X[0])
+    def fit(self, X,mmap_idxs=None):
+        if mmap_idxs is None:
+            self._dim = len(X[0])
+        else:
+            self._dim = len(mmap_idxs)
         
         assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
 
@@ -55,10 +56,8 @@ class KDTree():
             if self.verbose:
                 print("INFO: Model is already loaded, overwrite existing model!")
             os.remove(self.model_file)
-            if len(os.listdir(self.tmp_path)) > 0:
-                filelist = [ f for f in os.listdir(self.tmp_path) if f.endswith(".mmap") ]
-                for f in filelist:
-                    os.remove(os.path.join(self.tmp_path, f))
+            os.remove(self.mmap_file)
+
             self.leaf_size = self.org_leaf_size
 
         I = np.array(range(len(X)))
@@ -69,16 +68,23 @@ class KDTree():
         self.n_leaves = 2**self.depth
         self.n_nodes = 2**(self.depth+1)-1
         self.tree = np.empty((self.n_nodes,self._dim,2),dtype=self.dtype)
+        self.mmap_shape = (self.n_leaves,self.leaf_size,self._dim+1)
+
+        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
 
         start = time.time()
-        self._build_tree(X, I)
+        if mmap_idxs is None:
+            self._build_tree(X, I,mmap)
+        else:
+            self._build_tree_mmap(X,I,mmap,mmap_idxs)
         end = time.time()
+        #mmap.flush()
         self._save()
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
 
 
-    def _build_tree(self, pts, indices, depth=0,idx=0):
+    def _build_tree(self, pts, indices,mmap, depth=0,idx=0):
         #if root
         if idx == 0: 
             self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
@@ -89,16 +95,12 @@ class KDTree():
             pts = np.c_[indices,pts]
 
             shape = pts.shape
-            if shape != self.leaf_size:
+            if shape[0] != self.leaf_size:
                 nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
                 pts = np.vstack([pts,nan])
             
             lf_idx = self.n_leaves+idx-self.n_nodes
-            filename = os.path.join(self.tmp_path, "mem"+str(lf_idx)+".mmap")
-            fp = np.memmap(filename, dtype=self.dtype, mode='w+', shape=pts.shape)
-            fp[:] = pts[:]
-            fp.flush()
-
+            mmap[lf_idx,:] = pts[:]
             return 
         
         axis = depth % self._dim
@@ -119,20 +121,71 @@ class KDTree():
         self.tree[l_idx] = l_bounds
         self.tree[r_idx] = r_bounds
 
-        self._build_tree(pts[:midx,:], indices[:midx], depth+1,l_idx)
-        self._build_tree(pts[midx:,:], indices[midx:], depth+1,r_idx)
+        self._build_tree(pts[:midx,:], indices[:midx],mmap, depth+1,l_idx)
+        self._build_tree(pts[midx:,:], indices[midx:],mmap, depth+1,r_idx)
+
+    def _build_tree_mmap(self, pts, indices,mmap, pts_mmap_idxs,depth=0,idx=0):
+            #if root
+        if idx == 0: 
+            self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
+
+        bounds = self.tree[idx]
+
+        if len(indices) <= self.leaf_size:
+            #Load into memory
+            pts_sub = pts[indices,:][:,pts_mmap_idxs]
+            pts = np.c_[indices,pts_sub]
+
+            shape = pts.shape
+            if shape[0] != self.leaf_size:
+                nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
+                pts = np.vstack([pts,nan])
+            
+            lf_idx = self.n_leaves+idx-self.n_nodes
+            mmap[lf_idx,:] = pts[:]
+            return 
+        
+        axis = depth % self._dim
+        pts_axis = pts_mmap_idxs[axis]
+        
+        #Load into memory
+        pts_ax = pts[indices,pts_axis]
+
+        part = pts_ax.argsort()
+        indices = indices[part]
+        pts_ax = pts_ax[part]
+
+        midx = math.floor(len(pts_ax)/2)
+        median = pts_ax[midx]
+
+        l_bounds,r_bounds = bounds.copy(),bounds.copy()
+        l_bounds[axis,1] = median
+        r_bounds[axis,0] = median
+
+        l_idx,r_idx = self._get_child_idx(idx)
+
+        self.tree[l_idx] = l_bounds
+        self.tree[r_idx] = r_bounds
+
+        del pts_ax
+
+        self._build_tree_mmap(pts, indices[:midx],mmap,pts_mmap_idxs, depth+1,l_idx)
+        self._build_tree_mmap(pts, indices[midx:],mmap,pts_mmap_idxs, depth+1,r_idx)
 
 
     def query_box(self,mins,maxs):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
+        self._leaves_visited = 0
+
         start = time.time()
         indices,points = self._recursive_search(0,mins,maxs)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
-        return indices,np.array(points,dtype=self.dtype)
+            print(f"INFO: Query loaded {self._leaves_visited} leaves")
+        return (np.array(indices,dtype=np.int64),np.array(points,dtype=self.dtype),self._leaves_visited,end-start)
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
@@ -145,8 +198,15 @@ class KDTree():
         
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
             bounds = self.tree[idx]
+            #fully contained
+            if (np.all(bounds[:,0] >= mins )) and (np.all(maxs >= bounds[:,1])):
+                lf_idx = self.n_leaves+idx-self.n_nodes
+                pts = self._get_pts(lf_idx)
+                indices.extend(pts[:,0].astype(np.int64))
+                points.extend(pts[:,1:])
+                return indices,points
             #intersects
-            if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
+            elif (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
                 lf_idx = self.n_leaves+idx-self.n_nodes
                 pts = self._get_pts(lf_idx)
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
@@ -180,6 +240,7 @@ class KDTree():
         self.n_leaves = new.n_leaves
         self.n_nodes = new.n_nodes
         self._dim = new._dim
+        self.mmap_shape = new.mmap_shape
         self.dtype = str(self.tree.dtype)
 
     def _save(self):
@@ -194,30 +255,24 @@ class KDTree():
             d += 1
         return d
 
-    def _get_pts(self,idx):
-        filename = os.path.join(self.tmp_path, "mem"+str(idx)+".mmap")
-        shape = (self.leaf_size,self._dim+1)
-        fp = np.memmap(filename, dtype=self.dtype, mode='r', shape=shape) 
-        return fp
+    def _get_pts(self,lf_idx):
+        self._leaves_visited += 1
+        fp = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+        leaf = fp[lf_idx,:,:]
+        if leaf[-1,0] == -1:
+            return leaf[:-1,:]
+        else: 
+            return leaf
 
+    #Returns config parameters of model required to load the model
+    def get_file_cfg(self):
+        return {"path":self.path,"mmap_file":self.mmap_file,"model_file":self.model_file,
+                "verbose":self.verbose} 
+            
     @staticmethod
     def _get_child_idx(i):
         return (2*i)+1, (2*i)+2
 
-    # Compress model + mmap files to make it easier to transfer 
-    def compress_model(self,path=None,zipname="model",folder=""):
-        if path is None:
-            path = self.path
-        if not zipname.endswith(".zip"):
-            zipname = zipname +".zip"
-        out = os.path.join(path,zipname)
-        zf = zipfile.ZipFile(out,"w")
-        for root, dirs, files in os.walk(self.tmp_path):
-            for file in files:
-                zf.write(os.path.join(root,file),os.path.join(folder,".mmap", file))
-        out_model = os.path.join(folder,os.path.basename(self.model_file))
-        zf.write(os.path.join(path,self.model_file),out_model)
-        zf.close()
 
 
 
