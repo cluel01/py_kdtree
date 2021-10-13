@@ -173,21 +173,28 @@ class KDTree():
         self._build_tree_mmap(pts, indices[midx:],mmap,pts_mmap_idxs, depth+1,r_idx)
 
 
-    def query_box(self,mins,maxs):
+    def query_box(self,mins,maxs,index_only=False):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
         self._leaves_visited = 0
+        self._loading_time = 0.
 
         start = time.time()
-        indices,points = self._recursive_search(0,mins,maxs)
+        indices,points = self._recursive_search(0,mins,maxs,index_only=index_only)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
             print(f"INFO: Query loaded {self._leaves_visited} leaves")
-        return (np.array(indices,dtype=np.int64),np.array(points,dtype=self.dtype),self._leaves_visited,end-start)
+            print(f"INFO: Query took {self._loading_time} seconds loading leaves")
 
-    def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
+        if index_only: 
+            return (np.concatenate(indices,dtype=np.int64),self._leaves_visited,end-start,self._loading_time)
+        else:
+            return (np.concatenate(indices,dtype=np.int64),np.concatenate(points,dtype=self.dtype),self._leaves_visited,end-start,self._loading_time)
+
+
+    def _recursive_search(self,idx,mins,maxs,indices=None,points=None,index_only=False):
         if points is None:
             points = []
         if indices is None:
@@ -210,13 +217,17 @@ class KDTree():
             #    points.extend(pts[:,1:])
             #    return indices,points
             #intersects
-            if (np.all(bounds[:,1] > mins )) and (np.all(maxs > bounds[:,0])):
+            if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
                 lf_idx = self.n_leaves+idx-self.n_nodes
+                start = time.time()
                 pts = self._get_pts(lf_idx)
+                end = time.time()
+                self._loading_time += end-start
                 #also includes points on the borders of the box!
                 mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
-                indices.extend(pts[:,0][mask].astype(np.int64))
-                points.extend(pts[:,1:][mask])
+                indices.append(pts[:,0][mask].astype(np.int64))
+                if not index_only:
+                    points.append(pts[:,1:][mask])
                 return indices,points
             else:
                 return indices,points
@@ -225,10 +236,10 @@ class KDTree():
         r_bounds = self.tree[r_idx]
 
         #if at least intersects
-        if (np.all(l_bounds[:,1] > mins )) and (np.all(maxs > l_bounds[:,0])):
+        if (np.all(l_bounds[:,1] >= mins )) and (np.all(maxs >= l_bounds[:,0])):
             self._recursive_search(l_idx,mins,maxs,indices,points)
 
-        if (np.all(r_bounds[:,1] > mins )) and (np.all(maxs > r_bounds[:,0])): 
+        if (np.all(r_bounds[:,1] >= mins )) and (np.all(maxs >= r_bounds[:,0])): 
             self._recursive_search(r_idx,mins,maxs,indices,points)
 
         return indices,points

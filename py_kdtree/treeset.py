@@ -173,9 +173,9 @@ class KDTreeSet():
 
         #query stuff
         dname = "_".join([self.group_prefix + str(j) for j in idx])
-        inds, pts,leaves_visited,time = self.trees[dname].query_box(mins,maxs)
+        inds, pts,leaves_visited,time,loading_time = self.trees[dname].query_box(mins,maxs)
 
-        return (inds,pts,leaves_visited,time)
+        return (inds,pts,leaves_visited,time,loading_time)
 
     '''
     Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
@@ -205,7 +205,7 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = self._create_params(mins,maxs,idxs)
+        params = self._create_params(mins,maxs,idxs,False)
 
         #pool = multiprocessing.Pool(n_jobs)
         pool = ThreadPool(n_jobs)
@@ -224,21 +224,27 @@ class KDTreeSet():
         p_list = []
 
         leaves_visited = 0
+        loading_time = 0.
         for i in range(len(idxs)):
-            inds, pts,lv,_ = results[i]
+            inds, pts,lv,_,lt = results[i]
             #get inds not part of i_list so far
             new_idx = np.arange(len(inds))
             if len(i_list) > 0:
                 new_idx = np.where(np.in1d(inds,i_list) == False)
-            i_list.extend(np.array(inds,dtype=np.int64)[new_idx])
+            i_list.extend(inds[new_idx].tolist())
             if no_pts == False:
                 p_list.append(pts[new_idx])
             leaves_visited += lv
+            loading_time += lt
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
+            print(f"INFO: Query loaded {leaves_visited} leaves")
+            print(f"INFO: Query loading time: {loading_time} s")
 
-        return (i_list,p_list,leaves_visited,end-start)
+        points = np.concatenate(p_list)
+        inds = np.array(i_list,dtype=np.int64)
+        return (inds,points,leaves_visited,end-start,loading_time)
 
     def multi_query_ranked(self,mins,maxs,idxs):
         if isinstance(mins,np.ndarray):
@@ -254,12 +260,15 @@ class KDTreeSet():
         inds = []
 
         leaves_visited = 0
+        loading_time  = 0.
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
-            i, _,lv,_ = self.trees[dname].query_box(mins[i],maxs[i])
-            inds.extend(i)
+            i, lv,_,lt = self.trees[dname].query_box(mins[i],maxs[i],index_only=True)
+            inds.append(i)
             leaves_visited += lv
+            loading_time += lt
 
+        inds = np.concatenate(inds)
         inds, counts = np.unique(inds,return_counts=True)
         order = np.argsort(-counts)
                 
@@ -267,8 +276,9 @@ class KDTreeSet():
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
             print(f"INFO: Query loaded {leaves_visited} leaves")
+            print(f"INFO: Query loading time: {loading_time} s")
 
-        return (inds[order],counts[order],leaves_visited,end-start)
+        return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
     def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
         if isinstance(mins,np.ndarray):
@@ -290,7 +300,7 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = self._create_params(mins,maxs,idxs)
+        params = self._create_params(mins,maxs,idxs,True)
 
         #pool = multiprocessing.Pool(n_jobs)
         pool = ThreadPool(n_jobs)
@@ -306,6 +316,7 @@ class KDTreeSet():
 
         i_list = np.concatenate([i[0] for i in results])
         leaves_visited = int(np.sum([i[2] for i in results]))
+        loading_time = np.sum([i[4] for i in results])
 
         inds, counts = np.unique(i_list,return_counts=True)
         order = np.argsort(-counts)
@@ -314,8 +325,9 @@ class KDTreeSet():
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
             print(f"INFO: Query loaded {leaves_visited} leaves")
+            print(f"INFO: Query loading time: {loading_time} s")
 
-        return (inds[order],counts[order],leaves_visited,end-start)
+        return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
     def get_fitted_trees(self,array=False):
         fitted_trees = []
@@ -327,20 +339,21 @@ class KDTreeSet():
             return arr
         return fitted_trees
 
-    def _create_params(self,mins,maxs,idxs):
+    def _create_params(self,mins,maxs,idxs,index_only):
         params = []
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
             cfg_dict = self.trees[dname].get_file_cfg()
-            params.append([cfg_dict,mins[i],maxs[i]])
+            params.append([cfg_dict,mins[i],maxs[i],index_only])
         return params
 
-def _static_query(cfg,mins,maxs):
+def _static_query(cfg,mins,maxs,index_only):
     #To be executed silently
     cfg["verbose"] = False
     tree = KDTree(**cfg)
-    inds, pts,leaves_visited,time = tree.query_box(mins,maxs)
-    return inds,pts,leaves_visited,time
+    
+    return tree.query_box(mins,maxs,index_only)
+    
 
 
 

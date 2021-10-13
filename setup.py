@@ -5,6 +5,15 @@ import re
 from setuptools import find_packages
 from setuptools import setup
 
+from setuptools.extension import Extension
+from Cython.Build import cythonize
+import numpy as np
+
+
+extensions = [Extension('rapidearth.cython.utils', ["rapidearth/cython/utils.pyx"]),
+            Extension('rapidearth.cython.functions', ["rapidearth/cython/functions.pyx"],
+            include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
+        extra_link_args=['-fopenmp'])]
 
 def read(filename):
     filename = os.path.join(os.path.dirname(__file__), filename)
@@ -26,6 +35,10 @@ setup(
     long_description=read("README.rst"),
 
     packages=find_packages(exclude=('tests',)),
+
+    ext_modules=cythonize(extensions),
+
+    zip_safe=False,
 
     install_requires=[],
 
