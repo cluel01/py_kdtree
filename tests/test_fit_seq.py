@@ -30,7 +30,7 @@ inds,pts = ens.query(np.array([0,0,0,0]),np.array([0.5,0.1,0.1,0.1]),idxs[1])
 print(len(inds))
 print(len(pts))
 
-inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.3],[0.5,0.5,0.4]]),[idxs[i] for i in [0,2]])
+inds,pts = ens.multi_query(np.array([[0,0,0],[0,0,0]]),np.array([[0.5,0.5,0.3],[0.5,0.5,0.4]]),np.array([idxs[i] for i in [0,2]]))
 print(len(inds))
 print(len(np.unique(inds)))
 
