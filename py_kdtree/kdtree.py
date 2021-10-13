@@ -210,7 +210,7 @@ class KDTree():
             #    points.extend(pts[:,1:])
             #    return indices,points
             #intersects
-            elif (np.all(bounds[:,1] > mins )) and (np.all(maxs > bounds[:,0])):
+            if (np.all(bounds[:,1] > mins )) and (np.all(maxs > bounds[:,0])):
                 lf_idx = self.n_leaves+idx-self.n_nodes
                 pts = self._get_pts(lf_idx)
                 #also includes points on the borders of the box!
