@@ -341,7 +341,6 @@ def _static_query(cfg,mins,maxs):
     tree = KDTree(**cfg)
     inds, pts,leaves_visited,time = tree.query_box(mins,maxs)
     return inds,pts,leaves_visited,time
-           
 
 
 

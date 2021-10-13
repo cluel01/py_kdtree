@@ -189,7 +189,6 @@ class KDTree():
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None):
         if points is None:
-    
             points = []
         if indices is None:
             indices = []
@@ -198,13 +197,18 @@ class KDTree():
         
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
             bounds = self.tree[idx]
+
+            #Leave fully contained out -> 
+            # only improves performance when it is done during traversal not on leaf level 
+            # -> load all leaves among this branch
+            #########
             #fully contained
-            if (np.all(bounds[:,0] >= mins )) and (np.all(maxs >= bounds[:,1])):
-                lf_idx = self.n_leaves+idx-self.n_nodes
-                pts = self._get_pts(lf_idx)
-                indices.extend(pts[:,0].astype(np.int64))
-                points.extend(pts[:,1:])
-                return indices,points
+            #if (np.all(bounds[:,0] >= mins )) and (np.all(maxs >= bounds[:,1])):
+            #    lf_idx = self.n_leaves+idx-self.n_nodes
+            #    pts = self._get_pts(lf_idx)
+            #    indices.extend(pts[:,0].astype(np.int64))
+            #    points.extend(pts[:,1:])
+            #    return indices,points
             #intersects
             elif (np.all(bounds[:,1] > mins )) and (np.all(maxs > bounds[:,0])):
                 lf_idx = self.n_leaves+idx-self.n_nodes
