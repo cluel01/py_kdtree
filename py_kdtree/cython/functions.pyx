@@ -27,7 +27,7 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef (long*,int) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, int ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained):
+                          long* indices, int ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef double[:,:] bounds,l_bounds,r_bounds
@@ -92,7 +92,7 @@ cdef (long*,int) _recursive_search(int node_idx,double[::1] mins,double[::1] max
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs):
+cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs) nogil:
     cdef int intersects, idx
     
     intersects = 0
@@ -111,7 +111,7 @@ cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs):
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
+cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs) nogil:
     cdef int contained, idx
     
     contained = 0
@@ -132,7 +132,7 @@ cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
 #TODO so far contains both solutions malloc and realloc -> remove one of them
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef long* resize_long_array(long* arr,long old_len, long new_len):
+cdef long* resize_long_array(long* arr,long old_len, long new_len) nogil:
     cdef long i 
     cdef long* mem = <long*> realloc(arr,new_len * sizeof(long))
     #cdef long* mem = <long*> malloc(new_len * sizeof(long))
