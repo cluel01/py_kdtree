@@ -136,8 +136,8 @@ cdef long* resize_long_array(long* arr,long old_len, long new_len):
     cdef long i 
     cdef long* mem = <long*> realloc(arr,new_len * sizeof(long))
     #cdef long* mem = <long*> malloc(new_len * sizeof(long))
-    if not mem:
-        raise MemoryError()
+    #if not mem:
+    #    raise MemoryError()
     #for i in range(old_len):
     #    mem[i] = arr[i]
     arr = mem
