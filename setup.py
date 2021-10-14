@@ -10,8 +10,7 @@ from Cython.Build import cythonize
 import numpy as np
 
 
-extensions = [Extension('rapidearth.cython.utils', ["rapidearth/cython/utils.pyx"]),
-            Extension('rapidearth.cython.functions', ["rapidearth/cython/functions.pyx"],
+extensions = [Extension('py_kdtree.cython.functions', ["py_kdtree/cython/functions.pyx"],
             include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'])]
 
