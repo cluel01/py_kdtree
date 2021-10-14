@@ -195,14 +195,14 @@ class KDTree():
         else:
             return (np.concatenate(indices,dtype=np.int64),np.concatenate(points,dtype=self.dtype),self._leaves_visited,end-start,self._loading_time)
 
-    def query_box_cy(self,mins,maxs):
+    def query_box_cy(self,mins,maxs,mem_cap=0.0001):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
 
         start = time.time()
-        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap)
+        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,mem_cap)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")

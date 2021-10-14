@@ -3,16 +3,16 @@ from py_kdtree.kdtree import KDTree
 import time
 np.random.seed(42)
 
-X = np.random.randint(0,100,(10000000,3)).astype(np.float32)
+X = np.random.randint(0,100,(1000000,3)).astype(np.float64)
 print(len(np.unique(X,axis=0)))
 
-tree = KDTree(leaf_size=200,path="/home/cluelf/py_kdtree/run",dtype="float32")
+tree = KDTree(leaf_size=200,path="/home/cluelf/py_kdtree/run",dtype="float64")
 
 tree.fit(X)
 
 
 #inds,pts,lv,t = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=False)
-inds,t = tree.query_box_cy(np.array([0,0,0]),np.array([10,10,10]))
+inds,t = tree.query_box_cy(np.array([0,0,0],dtype=np.float64),np.array([10,10,10],dtype="float64"))
 
 print(len(inds))
 print(len(np.unique(inds)))
