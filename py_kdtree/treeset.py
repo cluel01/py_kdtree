@@ -259,14 +259,10 @@ class KDTreeSet():
 
         inds = []
 
-        leaves_visited = 0
-        loading_time  = 0.
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
-            i, lv,_,lt = self.trees[dname].query_box(mins[i],maxs[i],index_only=True)
+            i,_ = self.trees[dname].query_box_cy(mins[i],maxs[i])
             inds.append(i)
-            leaves_visited += lv
-            loading_time += lt
 
         inds = np.concatenate(inds)
         inds, counts = np.unique(inds,return_counts=True)
@@ -275,10 +271,8 @@ class KDTreeSet():
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
-            print(f"INFO: Query loaded {leaves_visited} leaves")
-            print(f"INFO: Query loading time: {loading_time} s")
 
-        return (inds[order],counts[order],leaves_visited,end-start,loading_time)
+        return (inds[order],counts[order],end-start)
 
     def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
         if isinstance(mins,np.ndarray):
