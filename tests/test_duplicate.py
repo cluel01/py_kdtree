@@ -12,7 +12,7 @@ tree.fit(X)
 
 
 #inds,pts,lv,t = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=False)
-inds,lv,t = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=True)
+inds,lv,t,lt = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=True)
 
 print(len(inds))
 print(len(np.unique(inds)))

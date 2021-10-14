@@ -32,34 +32,35 @@ cdef int _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, doubl
     
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
+        lf_idx = n_leaves+node_idx-n_nodes
         if contained == 1:
-            lf_idx = n_leaves+node_idx-n_nodes
             for j in range(mmap.shape[1]):
+                if j == mmap.shape[1]-1:
+                    if mmap[lf_idx,j,0] == -1.:
+                        continue
                 indices[ind_pt] = int(mmap[lf_idx,j,0])
                 ind_pt += 1
                 if ind_pt == ind_len:
                     resize_long_array(indices,ind_len+mmap.shape[1])
                     ind_len += mmap.shape[1]
         else:
-            bounds = tree[node_idx]
-            #can be discarded???
-            ret = check_intersect(bounds,mins,maxs)
-            if ret == 1:
-                lf_idx = n_leaves+node_idx-n_nodes
-                
-                for j in range(mmap.shape[1]):
-                    k = 0
-                    isin = 0
-                    while (k < mmap.shape[2]-1) and (isin == k):
-                        if (mmap[lf_idx,j,k+1] >= mins[k]) and (mmap[lf_idx,j,k+1] <= maxs[k]):
-                            isin += 1
-                        k += 1
-                    if isin == k:
-                        indices[ind_pt] = int(mmap[lf_idx,j,0])
-                        ind_pt += 1
-                        if ind_pt == ind_len:
-                            resize_long_array(indices,ind_len+mmap.shape[1])
-                            ind_len += mmap.shape[1]
+            for j in range(mmap.shape[1]):
+                k = 0
+                isin = 0
+                while (k < mmap.shape[2]-1) and (isin == k):
+                    if j == mmap.shape[1]-1:
+                        if mmap[lf_idx,j,0] == -1.:
+                            k += 1
+                            continue
+                    if (mmap[lf_idx,j,k+1] >= mins[k]) and (mmap[lf_idx,j,k+1] <= maxs[k]):
+                        isin += 1
+                    k += 1
+                if isin == k:
+                    indices[ind_pt] = int(mmap[lf_idx,j,0])
+                    ind_pt += 1
+                    if ind_pt == ind_len:
+                        resize_long_array(indices,ind_len+mmap.shape[1])
+                        ind_len += mmap.shape[1]
         return ind_pt
     ############################## Normal node ##########################################################################
     else:

@@ -4,6 +4,8 @@ import math
 import os
 import pickle
 
+from .cython.functions import recursive_search
+
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
 # exexuting the cell mulitple times
@@ -193,6 +195,21 @@ class KDTree():
         else:
             return (np.concatenate(indices,dtype=np.int64),np.concatenate(points,dtype=self.dtype),self._leaves_visited,end-start,self._loading_time)
 
+    def query_box_cy(self,mins,maxs):
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+
+        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+
+        start = time.time()
+        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap)
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
+
+        mmap._mmap.close()
+        return indices.base,end-start
+
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None,index_only=False):
         if points is None:
@@ -203,34 +220,18 @@ class KDTree():
         l_idx,r_idx = self._get_child_idx(idx)
         
         if (l_idx >= len(self.tree)) and (r_idx >= len(self.tree)):
-            bounds = self.tree[idx]
+            lf_idx = self.n_leaves+idx-self.n_nodes
+            start = time.time()
+            pts = self._get_pts(lf_idx)
+            end = time.time()
+            self._loading_time += end-start
+            #also includes points on the borders of the box!
+            mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
+            indices.append(pts[:,0][mask].astype(np.int64))
+            if not index_only:
+                points.append(pts[:,1:][mask])
+            return indices,points
 
-            #Leave fully contained out -> 
-            # only improves performance when it is done during traversal not on leaf level 
-            # -> load all leaves among this branch
-            #########
-            #fully contained
-            #if (np.all(bounds[:,0] >= mins )) and (np.all(maxs >= bounds[:,1])):
-            #    lf_idx = self.n_leaves+idx-self.n_nodes
-            #    pts = self._get_pts(lf_idx)
-            #    indices.extend(pts[:,0].astype(np.int64))
-            #    points.extend(pts[:,1:])
-            #    return indices,points
-            #intersects
-            if (np.all(bounds[:,1] >= mins )) and (np.all(maxs >= bounds[:,0])):
-                lf_idx = self.n_leaves+idx-self.n_nodes
-                start = time.time()
-                pts = self._get_pts(lf_idx)
-                end = time.time()
-                self._loading_time += end-start
-                #also includes points on the borders of the box!
-                mask = (np.all(pts[:,1:] >= mins,axis=1) ) &  (np.all(pts[:,1:] <= maxs, axis=1))
-                indices.append(pts[:,0][mask].astype(np.int64))
-                if not index_only:
-                    points.append(pts[:,1:][mask])
-                return indices,points
-            else:
-                return indices,points
 
         l_bounds = self.tree[l_idx]
         r_bounds = self.tree[r_idx]
