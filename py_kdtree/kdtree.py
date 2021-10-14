@@ -195,7 +195,7 @@ class KDTree():
         else:
             return (np.concatenate(indices,dtype=np.int64),np.concatenate(points,dtype=self.dtype),self._leaves_visited,end-start,self._loading_time)
 
-    def query_box_cy(self,mins,maxs,mem_cap=0.0001):
+    def query_box_cy(self,mins,maxs,mem_cap=0.001):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 

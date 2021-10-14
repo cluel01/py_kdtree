@@ -4,8 +4,8 @@ cimport cython
 
 import numpy as np
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+#@cython.boundscheck(False) # turn off bounds-checking for entire function
+#@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
                     int n_nodes,const double[:,:,::1] mmap,double mem_cap):    
     cdef long[::1] indices_view
@@ -14,7 +14,7 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
 
     cdef int ind_pt = 0 
     cdef long* indices = <long*> malloc(ind_len * sizeof(long))
-    
+
     try:
         ind_pt = _recursive_search(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
         indices_view = np.empty(ind_pt,dtype=np.int64)
@@ -25,8 +25,8 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
         free(indices)
     
     
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+#@cython.boundscheck(False) # turn off bounds-checking for entire function
+#@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef int _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
                           long* indices, int ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained):
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
@@ -44,7 +44,7 @@ cdef int _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, doubl
                 indices[ind_pt] = int(mmap[lf_idx,j,0])
                 ind_pt += 1
                 if ind_pt == ind_len:
-                    resize_long_array(indices,ind_len+extend_mem)
+                    indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                     ind_len += extend_mem
         else:
             for j in range(mmap.shape[1]):
@@ -62,7 +62,8 @@ cdef int _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, doubl
                     indices[ind_pt] = int(mmap[lf_idx,j,0])
                     ind_pt += 1
                     if ind_pt == ind_len:
-                        resize_long_array(indices,ind_len+extend_mem)
+                        print("resize")
+                        indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                         ind_len += extend_mem
         return ind_pt
     ############################## Normal node ##########################################################################
@@ -91,8 +92,8 @@ cdef int _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, doubl
             
     return ind_pt
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+#@cython.boundscheck(False) # turn off bounds-checking for entire function
+#@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs):
     cdef int intersects, idx
     
@@ -110,8 +111,8 @@ cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs):
     
     return intersects
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+#@cython.boundscheck(False) # turn off bounds-checking for entire function
+#@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
     cdef int contained, idx
     
@@ -129,11 +130,13 @@ cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
     
     return contained
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef long* resize_long_array(long* arr, long new_len):
-    mem = <long*> realloc(arr, new_len * sizeof(long))
+#@cython.boundscheck(False) # turn off bounds-checking for entire function
+#@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef long* resize_long_array(long* arr,long old_len, long new_len):
+    cdef long i 
+    cdef long* mem = <long*> malloc(new_len * sizeof(long))
     if not mem:
         raise MemoryError()
-    arr = mem
-    return arr
+    for i in range(old_len):
+        mem[i] = arr[i]
+    return mem

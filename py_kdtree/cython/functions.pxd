@@ -8,4 +8,4 @@ cdef int check_intersect(double[:,:] ,double[:] ,double[:] ) nogil
 
 cdef int check_contained(double[:,:] ,double[:] ,double[:] ) nogil
 
-cdef long* resize_long_array(long* , long )
+cdef long* resize_long_array(long* ,long, long ) 
