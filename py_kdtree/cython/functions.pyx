@@ -130,13 +130,15 @@ cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
     
     return contained
 
-#@cython.boundscheck(False) # turn off bounds-checking for entire function
-#@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef long* resize_long_array(long* arr,long old_len, long new_len):
     cdef long i 
-    cdef long* mem = <long*> malloc(new_len * sizeof(long))
+    cdef long* mem = <long*> realloc(arr,new_len * sizeof(long))
     if not mem:
         raise MemoryError()
-    for i in range(old_len):
-        mem[i] = arr[i]
-    return mem
+    #for i in range(old_len):
+    #    mem[i] = arr[i]
+    arr = mem
+    free(mem)
+    return arr
