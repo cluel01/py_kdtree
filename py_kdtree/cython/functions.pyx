@@ -20,10 +20,9 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
         indices_view = np.empty(ind_pt,dtype=np.int64)
         for i in range(ind_pt):
             indices_view[i] = indices[i]
-        return indices_view
+        return indices_view 
     finally:
-        free(indices)
-    
+        free(indices)   
     
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -62,7 +61,6 @@ cdef (long*,int) _recursive_search(int node_idx,double[::1] mins,double[::1] max
                     indices[ind_pt] = int(mmap[lf_idx,j,0])
                     ind_pt += 1
                     if ind_pt == ind_len:
-                        print("resize")
                         indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                         ind_len += extend_mem
         return indices,ind_pt
@@ -130,15 +128,17 @@ cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs):
     
     return contained
 
-#@cython.boundscheck(False) # turn off bounds-checking for entire function
-#@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
+#TODO so far contains both solutions malloc and realloc -> remove one of them
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef long* resize_long_array(long* arr,long old_len, long new_len):
     cdef long i 
-    cdef long* mem = <long*> malloc(new_len * sizeof(long))
+    cdef long* mem = <long*> realloc(arr,new_len * sizeof(long))
+    #cdef long* mem = <long*> malloc(new_len * sizeof(long))
     if not mem:
         raise MemoryError()
-    for i in range(old_len):
-        mem[i] = arr[i]
+    #for i in range(old_len):
+    #    mem[i] = arr[i]
     arr = mem
-    free(mem)
     return arr
