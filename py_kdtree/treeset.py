@@ -205,7 +205,7 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = self._create_params(mins,maxs,idxs,False)
+        params = self._create_params(mins,maxs,idxs,False,False)
 
         #pool = multiprocessing.Pool(n_jobs)
         pool = ThreadPool(n_jobs)
@@ -259,20 +259,27 @@ class KDTreeSet():
 
         inds = []
 
+        leaves_visited = 0
+        loading_time  = 0.
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
-            i,_ = self.trees[dname].query_box_cy(mins[i],maxs[i])
+            i, lv,_,lt = self.trees[dname].query_box(mins[i],maxs[i],index_only=True)
             inds.append(i)
+            leaves_visited += lv
+            loading_time += lt
 
         inds = np.concatenate(inds)
         inds, counts = np.unique(inds,return_counts=True)
+
         order = np.argsort(-counts)
                 
         end = time.time()
         if self.verbose:
             print(f"INFO: query finished in {end-start} seconds")
+            print(f"INFO: Query loaded {leaves_visited} leaves")
+            print(f"INFO: Query loading time: {loading_time} s")
 
-        return (inds[order],counts[order],end-start)
+        return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
     def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
         if isinstance(mins,np.ndarray):
@@ -294,7 +301,7 @@ class KDTreeSet():
         else:
             n_jobs = n_jobs
 
-        params = self._create_params(mins,maxs,idxs,True)
+        params = self._create_params(mins,maxs,idxs,index_only=True)
 
         #pool = multiprocessing.Pool(n_jobs)
         pool = ThreadPool(n_jobs)
@@ -323,6 +330,82 @@ class KDTreeSet():
 
         return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
+
+    def multi_query_ranked_cy(self,mins,maxs,idxs):
+        if isinstance(mins,np.ndarray):
+            if mins.dtype != np.dtype(self.dtype):
+                mins = mins.astype(self.dtype)
+
+        if isinstance(maxs,np.ndarray):       
+            if maxs.dtype != np.dtype(self.dtype):
+                maxs = maxs.astype(self.dtype)
+
+        start = time.time()
+
+        inds = []
+
+        for i in range(len(idxs)):
+            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
+            i,_ = self.trees[dname].query_box_cy(mins[i],maxs[i])
+            inds.append(i)
+
+        inds = np.concatenate(inds)
+        inds, counts = np.unique(inds,return_counts=True)
+        order = np.argsort(-counts)
+                
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
+
+
+        return (inds[order],counts[order],end-start)
+
+    def multi_query_ranked_parallel_cy(self,mins,maxs,idxs,n_jobs=-1):
+        if isinstance(mins,np.ndarray):
+            if mins.dtype != np.dtype(self.dtype):
+                mins = mins.astype(self.dtype)
+
+        if isinstance(maxs,np.ndarray):       
+            if maxs.dtype != np.dtype(self.dtype):
+                maxs = maxs.astype(self.dtype)
+
+        start = time.time()
+
+        if n_jobs == -1:
+            total_cpus = os.cpu_count()
+            if total_cpus > len(idxs):
+                n_jobs = len(idxs)
+            else:
+                n_jobs = total_cpus
+        else:
+            n_jobs = n_jobs
+
+        params = self._create_params(mins,maxs,idxs,index_only=True,cython=True)
+
+        #pool = multiprocessing.Pool(n_jobs)
+        pool = ThreadPool(n_jobs)
+
+        try:
+            results = pool.starmap(_static_query,params)
+        except  Exception as e:
+            print(f"Warning: Error in query! \n {e}")
+            pool.close()
+            sys.exit()
+        pool.close()
+        pool.join()
+
+        i_list = np.concatenate([i[0] for i in results])
+
+        inds, counts = np.unique(i_list,return_counts=True)
+        order = np.argsort(-counts)
+                
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: query finished in {end-start} seconds")
+
+        return (inds[order],counts[order],end-start)
+
+
     def get_fitted_trees(self,array=False):
         fitted_trees = []
         for k,v in self.trees.items():
@@ -333,20 +416,26 @@ class KDTreeSet():
             return arr
         return fitted_trees
 
-    def _create_params(self,mins,maxs,idxs,index_only):
+    def _create_params(self,mins,maxs,idxs,index_only,cython=False):
         params = []
         for i in range(len(idxs)):
             dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
             cfg_dict = self.trees[dname].get_file_cfg()
-            params.append([cfg_dict,mins[i],maxs[i],index_only])
+            if cython:
+                params.append([cfg_dict,mins[i],maxs[i],index_only,cython])
+            else:
+                params.append([cfg_dict,mins[i],maxs[i],index_only])
         return params
 
-def _static_query(cfg,mins,maxs,index_only):
+def _static_query(cfg,mins,maxs,index_only,cython):
     #To be executed silently
     cfg["verbose"] = False
     tree = KDTree(**cfg)
     
-    return tree.query_box(mins,maxs,index_only)
+    if cython:
+        return tree.query_box_cy(mins,maxs)
+    else:
+        return tree.query_box(mins,maxs,index_only)
     
 
 
