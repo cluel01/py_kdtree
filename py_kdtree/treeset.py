@@ -238,7 +238,8 @@ class KDTreeSet():
             loading_time += lt
         end = time.time()
         if self.verbose:
-            print(f"INFO: query finished in {end-start} seconds")
+            print("#############################################")
+            print(f"INFO: Query finished in {end-start} seconds")
             print(f"INFO: Query loaded {leaves_visited} leaves")
             print(f"INFO: Query loading time: {loading_time} s")
 
@@ -275,6 +276,7 @@ class KDTreeSet():
                 
         end = time.time()
         if self.verbose:
+            print("#############################################")
             print(f"INFO: query finished in {end-start} seconds")
             print(f"INFO: Query loaded {leaves_visited} leaves")
             print(f"INFO: Query loading time: {loading_time} s")
@@ -324,7 +326,8 @@ class KDTreeSet():
                 
         end = time.time()
         if self.verbose:
-            print(f"INFO: query finished in {end-start} seconds")
+            print("#############################################")
+            print(f"INFO: Query finished in {end-start} seconds")
             print(f"INFO: Query loaded {leaves_visited} leaves")
             print(f"INFO: Query loading time: {loading_time} s")
 
@@ -355,7 +358,8 @@ class KDTreeSet():
                 
         end = time.time()
         if self.verbose:
-            print(f"INFO: query finished in {end-start} seconds")
+            print("#############################################")
+            print(f"INFO: Query finished in {end-start} seconds")
 
 
         return (inds[order],counts[order],end-start)
@@ -401,7 +405,8 @@ class KDTreeSet():
                 
         end = time.time()
         if self.verbose:
-            print(f"INFO: query finished in {end-start} seconds")
+            print("#############################################")
+            print(f"INFO: Query finished in {end-start} seconds")
 
         return (inds[order],counts[order],end-start)
 
