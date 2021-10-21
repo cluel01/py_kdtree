@@ -1,7 +1,7 @@
 from libc.stdlib cimport malloc, free, realloc
         
 cimport cython
-
+#from cython.parallel import prange
 import numpy as np
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -27,7 +27,7 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained):
+                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef double[:,:] bounds,l_bounds,r_bounds
