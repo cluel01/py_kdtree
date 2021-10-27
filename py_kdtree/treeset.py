@@ -36,6 +36,10 @@ class KDTreeSet():
             self.path = os.getcwd()
                 
         self.trees = {}
+
+        #unique indexes 
+        indexes = np.unique(indexes,axis=0)
+
         for i in indexes:
             dname = "_".join([group_prefix + str(j) for j in i])
             full = os.path.join(path,dname)
@@ -204,6 +208,12 @@ class KDTreeSet():
                 n_jobs = total_cpus
         else:
             n_jobs = n_jobs
+
+        #sort the boxes in case all have the same length!
+        #order = np.lexsort([idxs[:,i] for i in reversed(range(idxs.shape[1]))])
+        #mins = mins[order]
+        #maxs = maxs[order]
+        #idxs = idxs[order]
 
         params = self._create_params(mins,maxs,idxs,False,False)
 

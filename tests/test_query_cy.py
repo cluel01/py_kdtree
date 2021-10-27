@@ -7,7 +7,7 @@ X = np.random.randint(0,100,(10000000,3)).astype(np.float64)
 #X = np.random.randint(0,100,(100000,3)).astype(np.float64)
 print(len(np.unique(X,axis=0)))
 
-tree = KDTree(leaf_size=2000,path="/home/cluelf/py_kdtree/run",dtype="float64")
+tree = KDTree(leaf_size=40,path="/home/cluelf/py_kdtree/run",dtype="float64")
 
 tree.fit(X)
 
