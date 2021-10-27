@@ -1,7 +1,7 @@
 from libc.stdlib cimport malloc, free, realloc
         
 cimport cython
-
+#from cython.parallel import prange
 import numpy as np
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
