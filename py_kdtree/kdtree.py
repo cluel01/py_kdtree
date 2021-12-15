@@ -190,10 +190,19 @@ class KDTree():
             print(f"INFO: Query loaded {self._leaves_visited} leaves")
             print(f"INFO: Query took {self._loading_time} seconds loading leaves")
 
-        if index_only: 
-            return (np.concatenate(indices,dtype=np.int64),self._leaves_visited,end-start,self._loading_time)
+        if len(indices) > 0:
+            inds = np.concatenate(indices,dtype=np.int64)
         else:
-            return (np.concatenate(indices,dtype=np.int64),np.concatenate(points,dtype=self.dtype),self._leaves_visited,end-start,self._loading_time)
+            inds = np.empty((0,),dtype=np.int64)
+
+        if index_only: 
+            return (inds,self._leaves_visited,end-start,self._loading_time)
+        else:
+            if len(points) > 0:
+                pts = np.concatenate(points,dtype=self.dtype)
+            else:
+                pts = np.empty((0,self._dim))
+            return (inds,pts,self._leaves_visited,end-start,self._loading_time)
 
     def query_box_cy(self,mins,maxs,mem_cap=0.001):
         if self.tree is None:  

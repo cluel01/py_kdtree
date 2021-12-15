@@ -36,6 +36,10 @@ class KDTreeSet():
             self.path = os.getcwd()
                 
         self.trees = {}
+
+        #unique indexes 
+        indexes = np.unique(indexes,axis=0)
+
         for i in indexes:
             dname = "_".join([group_prefix + str(j) for j in i])
             full = os.path.join(path,dname)
@@ -177,6 +181,18 @@ class KDTreeSet():
 
         return (inds,pts,leaves_visited,time,loading_time)
 
+    def query_cy(self,mins,maxs,idx):
+        if mins.dtype != np.dtype(self.dtype):
+            mins = mins.astype(self.dtype)
+        if maxs.dtype != np.dtype(self.dtype):
+            maxs = maxs.astype(self.dtype)
+
+        #query stuff
+        dname = "_".join([self.group_prefix + str(j) for j in idx])
+        inds, time = self.trees[dname].query_box_cy(mins,maxs)
+
+        return (inds,time)
+
     '''
     Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
 
@@ -204,6 +220,12 @@ class KDTreeSet():
                 n_jobs = total_cpus
         else:
             n_jobs = n_jobs
+
+        #sort the boxes in case all have the same length!
+        #order = np.lexsort([idxs[:,i] for i in reversed(range(idxs.shape[1]))])
+        #mins = mins[order]
+        #maxs = maxs[order]
+        #idxs = idxs[order]
 
         params = self._create_params(mins,maxs,idxs,False,False)
 
@@ -283,56 +305,6 @@ class KDTreeSet():
 
         return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
-    def multi_query_ranked_parallel(self,mins,maxs,idxs,n_jobs=-1):
-        if isinstance(mins,np.ndarray):
-            if mins.dtype != np.dtype(self.dtype):
-                mins = mins.astype(self.dtype)
-
-        if isinstance(maxs,np.ndarray):       
-            if maxs.dtype != np.dtype(self.dtype):
-                maxs = maxs.astype(self.dtype)
-
-        start = time.time()
-
-        if n_jobs == -1:
-            total_cpus = os.cpu_count()
-            if total_cpus > len(idxs):
-                n_jobs = len(idxs)
-            else:
-                n_jobs = total_cpus
-        else:
-            n_jobs = n_jobs
-
-        params = self._create_params(mins,maxs,idxs,index_only=True)
-
-        #pool = multiprocessing.Pool(n_jobs)
-        pool = ThreadPool(n_jobs)
-
-        try:
-            results = pool.starmap(_static_query,params)
-        except  Exception as e:
-            print(f"Warning: Error in query! \n {e}")
-            pool.close()
-            sys.exit()
-        pool.close()
-        pool.join()
-
-        i_list = np.concatenate([i[0] for i in results])
-        leaves_visited = int(np.sum([i[2] for i in results]))
-        loading_time = np.sum([i[4] for i in results])
-
-        inds, counts = np.unique(i_list,return_counts=True)
-        order = np.argsort(-counts)
-                
-        end = time.time()
-        if self.verbose:
-            print("#############################################")
-            print(f"INFO: Query finished in {end-start} seconds")
-            print(f"INFO: Query loaded {leaves_visited} leaves")
-            print(f"INFO: Query loading time: {loading_time} s")
-
-        return (inds[order],counts[order],leaves_visited,end-start,loading_time)
-
 
     def multi_query_ranked_cy(self,mins,maxs,idxs):
         if isinstance(mins,np.ndarray):
@@ -363,53 +335,6 @@ class KDTreeSet():
 
 
         return (inds[order],counts[order],end-start)
-
-    def multi_query_ranked_parallel_cy(self,mins,maxs,idxs,n_jobs=-1):
-        if isinstance(mins,np.ndarray):
-            if mins.dtype != np.dtype(self.dtype):
-                mins = mins.astype(self.dtype)
-
-        if isinstance(maxs,np.ndarray):       
-            if maxs.dtype != np.dtype(self.dtype):
-                maxs = maxs.astype(self.dtype)
-
-        start = time.time()
-
-        if n_jobs == -1:
-            total_cpus = os.cpu_count()
-            if total_cpus > len(idxs):
-                n_jobs = len(idxs)
-            else:
-                n_jobs = total_cpus
-        else:
-            n_jobs = n_jobs
-
-        params = self._create_params(mins,maxs,idxs,index_only=True,cython=True)
-
-        #pool = multiprocessing.Pool(n_jobs)
-        pool = ThreadPool(n_jobs)
-
-        try:
-            results = pool.starmap(_static_query,params)
-        except  Exception as e:
-            print(f"Warning: Error in query! \n {e}")
-            pool.close()
-            sys.exit()
-        pool.close()
-        pool.join()
-
-        i_list = np.concatenate([i[0] for i in results])
-
-        inds, counts = np.unique(i_list,return_counts=True)
-        order = np.argsort(-counts)
-                
-        end = time.time()
-        if self.verbose:
-            print("#############################################")
-            print(f"INFO: Query finished in {end-start} seconds")
-
-        return (inds[order],counts[order],end-start)
-
 
     def get_fitted_trees(self,array=False):
         fitted_trees = []
