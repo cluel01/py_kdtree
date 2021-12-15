@@ -1,3 +1,5 @@
+# cython: profile=False
+
 from libc.stdlib cimport malloc, free, realloc
         
 cimport cython
