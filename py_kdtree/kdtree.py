@@ -4,7 +4,7 @@ import math
 import os
 import pickle
 
-from .cython.functions import recursive_search
+from .cython.functions import recursive_search,recursive_search_time
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -218,6 +218,24 @@ class KDTree():
 
         mmap._mmap.close()
         return indices.base,end-start
+    
+    def query_box_cy_profile(self,mins,maxs,mem_cap=0.001):
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+
+        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+        times = np.empty(3,dtype="float64")
+        indices = recursive_search_time(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,mem_cap,times)
+        total_time,loading_time,filter_time = times
+        traversal_time = total_time-loading_time-filter_time
+        if self.verbose:
+            print(f"INFO: Box search took: {total_time} seconds")
+            print(f"INFO: Loading time: {loading_time} seconds")
+            print(f"INFO: Filter time: {filter_time} seconds")
+            print(f"INFO: Traversal time: {traversal_time} seconds")
+
+        mmap._mmap.close()
+        return indices.base,total_time,loading_time,filter_time,traversal_time
 
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None,index_only=False):
