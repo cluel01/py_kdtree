@@ -98,7 +98,7 @@ cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef long[::1] recursive_search_time(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const double[:,:,::1] mmap,double mem_cap,double[::1] times):    
+                    int n_nodes,const double[:,:,::1] mmap,double mem_cap,double[::1] times, int[::1] loaded_leaves):    
     cdef long[::1] indices_view
     cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
     cdef long extend_mem = ind_len
@@ -131,11 +131,15 @@ cpdef long[::1] recursive_search_time(double[::1] mins,double[::1] maxs, double[
         times[0] = total_time
         times[1] = loading_time
         times[2] = filter_time
+
+        loaded_leaves[0] = pt_ct
+        loaded_leaves[1] = pt_is
+
         return indices_view
     finally:
         free(indices)   
         free(leaves_intersected)
-        free(leaves_contained)
+        free(leaves_contained)  
         free(leaf)
 
 

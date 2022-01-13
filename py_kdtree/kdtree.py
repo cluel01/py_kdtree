@@ -225,7 +225,8 @@ class KDTree():
 
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
         times = np.empty(3,dtype="float64")
-        indices = recursive_search_time(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,mem_cap,times)
+        loaded_leaves = np.empty(2,dtype=np.intc)
+        indices = recursive_search_time(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,mem_cap,times,loaded_leaves)
         total_time,loading_time,filter_time = times
         traversal_time = total_time-loading_time-filter_time
         if self.verbose:
@@ -233,9 +234,11 @@ class KDTree():
             print(f"INFO: Loading time: {loading_time} seconds")
             print(f"INFO: Filter time: {filter_time} seconds")
             print(f"INFO: Traversal time: {traversal_time} seconds")
+            print(f"INFO: Fully contained leaves loaded {loaded_leaves[0]}")
+            print(f"INFO: Intersected leaves loaded {loaded_leaves[1]}")
 
         mmap._mmap.close()
-        return indices.base,total_time,loading_time,filter_time,traversal_time
+        return indices.base,total_time,loading_time,filter_time,traversal_time,loaded_leaves[0],loaded_leaves[1]
 
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None,index_only=False):
