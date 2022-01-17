@@ -9,7 +9,7 @@ import numpy as np
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const double[:,:,::1] mmap,double mem_cap):    
+                    int n_nodes,const double[:,:,::1] mmap,int max_pts,double mem_cap):    
     cdef long[::1] indices_view
     cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
     cdef long extend_mem = ind_len
@@ -18,14 +18,17 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
     cdef long* indices = <long*> malloc(ind_len * sizeof(long))
 
     try:
-        indices,ind_pt,ind_len = _recursive_search(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
+        if max_pts > 0:
+            indices,ind_pt,ind_len = _recursive_search_limit(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
+        else:
+            indices,ind_pt,ind_len = _recursive_search(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
         indices_view = np.empty(ind_pt,dtype=np.int64)
         for i in range(ind_pt):
             indices_view[i] = indices[i]
         return indices_view 
     finally:
         free(indices)   
-    
+
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
@@ -45,6 +48,7 @@ cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::
                         continue
                 indices[ind_pt] = int(mmap[lf_idx,j,0])
                 ind_pt += 1
+
                 if ind_pt == ind_len:
                     indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                     ind_len += extend_mem
@@ -94,172 +98,81 @@ cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::
             
     return indices,ind_pt,ind_len
 
-
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef long[::1] recursive_search_time(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const double[:,:,::1] mmap,double mem_cap,double[::1] times, int[::1] loaded_leaves):    
-    cdef long[::1] indices_view
-    cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
-    cdef long extend_mem = ind_len
-
-    cdef long ind_pt = 0 
-    cdef long* indices = <long*> malloc(ind_len * sizeof(long))
-
-    cdef int pt_is = 0
-    cdef int pt_ct = 0
-    cdef int* leaves_intersected = <int*> malloc(n_leaves * sizeof(int))
-    cdef int* leaves_contained = <int*> malloc(n_leaves * sizeof(int))
-
-    cdef double* leaf = <double*> malloc(mmap.shape[1]*mmap.shape[2] * sizeof(double))
-    
-    cdef timespec ts
-    cdef double loading_time,filter_time,total_time
-
-    try:
-        clock_gettime(CLOCK_REALTIME, &ts)
-        start = ts.tv_sec + (ts.tv_nsec / 1000000000.) 
-        pt_is,pt_ct = _recursive_search_time(0,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected,pt_is,leaves_contained,pt_ct)
-        ind_pt,loading_time,filter_time,indices = _filter_leaves(leaf,mmap,mins,maxs,indices,ind_pt,leaves_intersected,pt_is,leaves_contained,pt_ct,ind_len,extend_mem)
-        indices_view = np.empty(ind_pt,dtype=np.int64)
-        for i in range(ind_pt):
-            indices_view[i] = indices[i]
-        clock_gettime(CLOCK_REALTIME, &ts)
-        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
-
-        total_time = end-start
-        times[0] = total_time
-        times[1] = loading_time
-        times[2] = filter_time
-
-        loaded_leaves[0] = pt_ct
-        loaded_leaves[1] = pt_is
-
-        return indices_view
-    finally:
-        free(indices)   
-        free(leaves_intersected)
-        free(leaves_contained)  
-        free(leaf)
-
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (int,int) _recursive_search_time(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                         int contained,int* leaves_intersected, int pt_is, int* leaves_contained, int pt_ct) nogil:
-    cdef int l_idx, r_idx,intersects, ret,lf_idx
+cdef (long*,long,long) _recursive_search_limit(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int max_pts, int contained) nogil:
+    cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef double[:,:] bounds,l_bounds,r_bounds
+    cdef double leaf_val
     
+    if ind_pt == max_pts:
+        return indices,ind_pt,ind_len
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
         lf_idx = n_leaves+node_idx-n_nodes
         if contained == 1:
-            leaves_contained[pt_ct] = lf_idx
-            pt_ct += 1
+            for j in range(mmap.shape[1]):
+                if j == mmap.shape[1]-1:
+                    if mmap[lf_idx,j,0] == -1.:
+                        continue
+                indices[ind_pt] = int(mmap[lf_idx,j,0])
+                ind_pt += 1
+                if ind_pt == max_pts:
+                    return indices,ind_pt,ind_len
+                if ind_pt == ind_len:
+                    indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
+                    ind_len += extend_mem
         else:
-            leaves_intersected[pt_is] = lf_idx
-            pt_is += 1
-        return pt_is,pt_ct
+            for j in range(mmap.shape[1]):
+                k = 0
+                isin = 0
+                while (k < mmap.shape[2]-1) and (isin == k):
+                    if j == mmap.shape[1]-1:
+                        if mmap[lf_idx,j,0] == -1.:
+                            k += 1
+                            continue
+                    leaf_val = mmap[lf_idx,j,k+1]
+                    if (leaf_val >= mins[k]) and (leaf_val <= maxs[k]):
+                        isin += 1
+                    k += 1
+                if isin == k:
+                    indices[ind_pt] = int(mmap[lf_idx,j,0])
+                    ind_pt += 1
+
+                    if ind_pt == max_pts:
+                        return indices,ind_pt,ind_len
+
+                    if ind_pt == ind_len:
+                        indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
+                        ind_len += extend_mem
+        return indices,ind_pt,ind_len
     ############################## Normal node ##########################################################################
     else:
         if contained == 1:
-            pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
-            pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+            indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
+            indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
         else:
             l_bounds = tree[l_idx]
             r_bounds = tree[r_idx]
             ret = check_contained(l_bounds,mins,maxs)
             if ret == 1:
-                pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+                indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
             else:
                 ret = check_intersect(l_bounds,mins,maxs)
                 if ret == 1:
-                    pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected, pt_is, leaves_contained, pt_ct)
+                    indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
 
             ret = check_contained(r_bounds,mins,maxs)
             if ret == 1:
-                pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+                indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
             else:
                 ret = check_intersect(r_bounds,mins,maxs)
                 if ret == 1:
-                    pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected, pt_is, leaves_contained, pt_ct)
+                    indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
             
-    return pt_is,pt_ct
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1] mmap,double[::1] mins,double[::1] maxs,long* indices,long ind_pt,int* leaves_intersected,int pt_is,int* leaves_contained,int pt_ct,
-                                        long ind_len,long extend_mem) nogil:
-    cdef int i,j,k,isin,contained,leaf_pt
-    cdef double leaf_val,start,end,loading_time,filter_time 
-    cdef timespec ts
-    loading_time , filter_time = 0,0
-    
-    for i in range(pt_is+pt_ct):
-        if i >= pt_is:
-            leaf_idx = leaves_contained[i-pt_is]
-            contained = 1
-        else:
-            leaf_idx = leaves_intersected[i]
-            contained = 0
-
-        clock_gettime(CLOCK_REALTIME, &ts)
-        start = ts.tv_sec + (ts.tv_nsec / 1000000000.)
-        # Load leaf into memory
-        if contained:
-            for j in range(mmap.shape[1]):
-                leaf[j] = mmap[leaf_idx,j,0]
-                if j == mmap.shape[1]-1:
-                    if leaf[j] == -1.:
-                        leaf_pt = mmap.shape[1]-1
-                    else:
-                        leaf_pt = mmap.shape[1]
-        else:
-            leaf_pt = 0
-            for j in range(mmap.shape[1]):
-                if j == mmap.shape[1]-1:
-                    if mmap[leaf_idx,j,0] == -1.:
-                        continue
-
-                for k in range(mmap.shape[2]):
-                    leaf[leaf_pt] = mmap[leaf_idx,j,k]
-                    leaf_pt += 1
-        clock_gettime(CLOCK_REALTIME, &ts)
-        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
-        loading_time += end-start
-
-        #Filter
-        clock_gettime(CLOCK_REALTIME, &ts)
-        start = ts.tv_sec + (ts.tv_nsec / 1000000000.)
-        if contained == 1:
-            for j in range(leaf_pt):
-                indices[ind_pt] = int(leaf[j])
-                ind_pt += 1
-                if ind_pt == ind_len:
-                    indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
-                    ind_len += extend_mem
-        else:
-            for j from 0 <= j < leaf_pt by mmap.shape[2]:
-                k = 0
-                isin = 0
-                while (k < mmap.shape[2]-1) and (isin == k):
-                    leaf_val = leaf[j+k+1]#leaf[j+k+1]
-                    if (leaf_val >= mins[k]) and (leaf_val <= maxs[k]):
-                        isin += 1
-                    k += 1
-                if isin == k:
-                    indices[ind_pt] = int(leaf[j])
-                    ind_pt += 1
-                    if ind_pt == ind_len:
-                        indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
-                        ind_len += extend_mem
-        clock_gettime(CLOCK_REALTIME, &ts)
-        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
-        filter_time += end-start
-
-    return ind_pt,loading_time,filter_time,indices
-
+    return indices,ind_pt,ind_len
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -313,3 +226,189 @@ cdef long* resize_long_array(long* arr,long old_len, long new_len) nogil:
     #    mem[i] = arr[i]
     arr = mem
     return arr
+
+
+################################################### Profiling variant of KDtree  #########################################
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef long[::1] recursive_search_time(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
+                    int n_nodes,const double[:,:,::1] mmap,int max_pts,double mem_cap,double[::1] times, int[::1] loaded_leaves):    
+    cdef long[::1] indices_view
+    cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
+    cdef long extend_mem = ind_len
+
+    cdef long ind_pt = 0 
+    cdef long* indices = <long*> malloc(ind_len * sizeof(long))
+
+    cdef int pt_is = 0
+    cdef int pt_ct = 0
+    cdef int* leaves_intersected = <int*> malloc(n_leaves * sizeof(int))
+    cdef int* leaves_contained = <int*> malloc(n_leaves * sizeof(int))
+
+    cdef double* leaf = <double*> malloc(mmap.shape[1]*mmap.shape[2] * sizeof(double))
+    
+    cdef timespec ts
+    cdef double loading_time,filter_time,total_time
+
+    if max_pts <= 0:
+        max_pts = mmap.shape[0]*mmap.shape[1]
+
+    try:
+        clock_gettime(CLOCK_REALTIME, &ts)
+        start = ts.tv_sec + (ts.tv_nsec / 1000000000.) 
+        pt_is,pt_ct = _recursive_search_time(0,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected,pt_is,leaves_contained,pt_ct)
+        ind_pt,loading_time,filter_time,indices = _filter_leaves(leaf,mmap,mins,maxs,indices,ind_pt,leaves_intersected,pt_is,leaves_contained,pt_ct,ind_len,max_pts,extend_mem)
+        indices_view = np.empty(ind_pt,dtype=np.int64)
+        for i in range(ind_pt):
+            indices_view[i] = indices[i]
+        clock_gettime(CLOCK_REALTIME, &ts)
+        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+
+        total_time = end-start
+        times[0] = total_time
+        times[1] = loading_time
+        times[2] = filter_time
+
+        loaded_leaves[0] = pt_ct
+        loaded_leaves[1] = pt_is
+
+        return indices_view
+    finally:
+        free(indices)   
+        free(leaves_intersected)
+        free(leaves_contained)  
+        free(leaf)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef (int,int) _recursive_search_time(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
+                         int contained,int* leaves_intersected, int pt_is, int* leaves_contained, int pt_ct) nogil:
+    cdef int l_idx, r_idx,intersects, ret,lf_idx
+    l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
+    cdef double[:,:] bounds,l_bounds,r_bounds
+    
+    ############################## Leaf ##########################################################################
+    if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
+        lf_idx = n_leaves+node_idx-n_nodes
+        if contained == 1:
+            leaves_contained[pt_ct] = lf_idx
+            pt_ct += 1
+        else:
+            leaves_intersected[pt_is] = lf_idx
+            pt_is += 1
+        return pt_is,pt_ct
+    ############################## Normal node ##########################################################################
+    else:
+        if contained == 1:
+            pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+            pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+        else:
+            l_bounds = tree[l_idx]
+            r_bounds = tree[r_idx]
+            ret = check_contained(l_bounds,mins,maxs)
+            if ret == 1:
+                pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+            else:
+                ret = check_intersect(l_bounds,mins,maxs)
+                if ret == 1:
+                    pt_is,pt_ct = _recursive_search_time(l_idx,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected, pt_is, leaves_contained, pt_ct)
+
+            ret = check_contained(r_bounds,mins,maxs)
+            if ret == 1:
+                pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,1,leaves_intersected, pt_is, leaves_contained, pt_ct)
+            else:
+                ret = check_intersect(r_bounds,mins,maxs)
+                if ret == 1:
+                    pt_is,pt_ct = _recursive_search_time(r_idx,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected, pt_is, leaves_contained, pt_ct)
+            
+    return pt_is,pt_ct
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1] mmap,double[::1] mins,double[::1] maxs,long* indices,long ind_pt,int* leaves_intersected,int pt_is,int* leaves_contained,int pt_ct,
+                                        long ind_len,int max_pts, long extend_mem) nogil:
+    cdef int i,j,k,isin,contained,leaf_pt
+    cdef double leaf_val,start,end,loading_time,filter_time 
+    cdef timespec ts
+    loading_time , filter_time = 0,0
+    
+    for i in range(pt_is+pt_ct):
+        if i >= pt_is:
+            leaf_idx = leaves_contained[i-pt_is]
+            contained = 1
+        else:
+            leaf_idx = leaves_intersected[i]
+            contained = 0
+
+        clock_gettime(CLOCK_REALTIME, &ts)
+        start = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+        # Load leaf into memory
+        if contained:
+            for j in range(mmap.shape[1]):
+                leaf[j] = mmap[leaf_idx,j,0]
+                if j == mmap.shape[1]-1:
+                    if leaf[j] == -1.:
+                        leaf_pt = mmap.shape[1]-1
+                    else:
+                        leaf_pt = mmap.shape[1]
+        else:
+            leaf_pt = 0
+            for j in range(mmap.shape[1]):
+                if j == mmap.shape[1]-1:
+                    if mmap[leaf_idx,j,0] == -1.:
+                        continue
+
+                for k in range(mmap.shape[2]):
+                    leaf[leaf_pt] = mmap[leaf_idx,j,k]
+                    leaf_pt += 1
+        clock_gettime(CLOCK_REALTIME, &ts)
+        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+        loading_time += end-start
+
+        #Filter
+        clock_gettime(CLOCK_REALTIME, &ts)
+        start = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+        if contained == 1:
+            for j in range(leaf_pt):
+                indices[ind_pt] = int(leaf[j])
+                ind_pt += 1
+
+                if ind_pt == max_pts:
+                    clock_gettime(CLOCK_REALTIME, &ts)
+                    end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+                    filter_time += end-start
+
+                    return ind_pt,loading_time,filter_time,indices
+
+                if ind_pt == ind_len:
+                    indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
+                    ind_len += extend_mem
+        else:
+            for j from 0 <= j < leaf_pt by mmap.shape[2]:
+                k = 0
+                isin = 0
+                while (k < mmap.shape[2]-1) and (isin == k):
+                    leaf_val = leaf[j+k+1]#leaf[j+k+1]
+                    if (leaf_val >= mins[k]) and (leaf_val <= maxs[k]):
+                        isin += 1
+                    k += 1
+                if isin == k:
+                    indices[ind_pt] = int(leaf[j])
+                    ind_pt += 1
+
+                    if ind_pt == max_pts:
+                        clock_gettime(CLOCK_REALTIME, &ts)
+                        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+                        filter_time += end-start
+
+                        return ind_pt,loading_time,filter_time,indices
+
+                    if ind_pt == ind_len:
+                        indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
+                        ind_len += extend_mem
+        clock_gettime(CLOCK_REALTIME, &ts)
+        end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
+        filter_time += end-start
+
+    return ind_pt,loading_time,filter_time,indices
