@@ -9,7 +9,7 @@ import numpy as np
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const double[:,:,::1] mmap,int max_pts,double mem_cap):    
+                    int n_nodes,const double[:,:,::1] mmap,int max_pts,double mem_cap,int[::1] arr_loaded):    
     cdef long[::1] indices_view
     cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
     cdef long extend_mem = ind_len
@@ -17,11 +17,14 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
     cdef long ind_pt = 0 
     cdef long* indices = <long*> malloc(ind_len * sizeof(long))
 
+    cdef int loaded_leaves = 0
+
     try:
         if max_pts > 0:
-            indices,ind_pt,ind_len = _recursive_search_limit(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,0)
         else:
-            indices,ind_pt,ind_len = _recursive_search(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search(0,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,0)
+        arr_loaded[0] = loaded_leaves
         indices_view = np.empty(ind_pt,dtype=np.int64)
         for i in range(ind_pt):
             indices_view[i] = indices[i]
@@ -31,8 +34,8 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int contained) nogil:
+cdef (long*,long,long,int) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int loaded_leaves, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef double[:,:] bounds,l_bounds,r_bounds
@@ -41,6 +44,7 @@ cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
         lf_idx = n_leaves+node_idx-n_nodes
+        loaded_leaves += 1
         if contained == 1:
             for j in range(mmap.shape[1]):
                 if j == mmap.shape[1]-1:
@@ -71,47 +75,48 @@ cdef (long*,long,long) _recursive_search(int node_idx,double[::1] mins,double[::
                     if ind_pt == ind_len:
                         indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                         ind_len += extend_mem
-        return indices,ind_pt,ind_len
+        return indices,ind_pt,ind_len,loaded_leaves
     ############################## Normal node ##########################################################################
     else:
         if contained == 1:
-            indices,ind_pt,ind_len = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,1)
-            indices,ind_pt,ind_len = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,1)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,1)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,1)
         else:
             l_bounds = tree[l_idx]
             r_bounds = tree[r_idx]
             ret = check_contained(l_bounds,mins,maxs)
             if ret == 1:
-                indices,ind_pt,ind_len = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,1)
+                indices,ind_pt,ind_len,loaded_leaves = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,1)
             else:
                 ret = check_intersect(l_bounds,mins,maxs)
                 if ret == 1:
-                    indices,ind_pt,ind_len = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
+                    indices,ind_pt,ind_len,loaded_leaves = _recursive_search(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,0)
 
             ret = check_contained(r_bounds,mins,maxs)
             if ret == 1:
-                indices,ind_pt,ind_len = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,1)
+                indices,ind_pt,ind_len,loaded_leaves = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,1)
             else:
                 ret = check_intersect(r_bounds,mins,maxs)
                 if ret == 1:
-                    indices,ind_pt,ind_len = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,0)
+                    indices,ind_pt,ind_len,loaded_leaves = _recursive_search(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,loaded_leaves,0)
             
-    return indices,ind_pt,ind_len
+    return indices,ind_pt,ind_len,loaded_leaves
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long*,long,long) _recursive_search_limit(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int max_pts, int contained) nogil:
+cdef (long*,long,long,int) _recursive_search_limit(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int max_pts,int loaded_leaves, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef double[:,:] bounds,l_bounds,r_bounds
     cdef double leaf_val
     
     if ind_pt == max_pts:
-        return indices,ind_pt,ind_len
+        return indices,ind_pt,ind_len,loaded_leaves
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
         lf_idx = n_leaves+node_idx-n_nodes
+        loaded_leaves += 1
         if contained == 1:
             for j in range(mmap.shape[1]):
                 if j == mmap.shape[1]-1:
@@ -120,7 +125,7 @@ cdef (long*,long,long) _recursive_search_limit(int node_idx,double[::1] mins,dou
                 indices[ind_pt] = int(mmap[lf_idx,j,0])
                 ind_pt += 1
                 if ind_pt == max_pts:
-                    return indices,ind_pt,ind_len
+                    return indices,ind_pt,ind_len,loaded_leaves
                 if ind_pt == ind_len:
                     indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                     ind_len += extend_mem
@@ -142,37 +147,37 @@ cdef (long*,long,long) _recursive_search_limit(int node_idx,double[::1] mins,dou
                     ind_pt += 1
 
                     if ind_pt == max_pts:
-                        return indices,ind_pt,ind_len
+                        return indices,ind_pt,ind_len,loaded_leaves
 
                     if ind_pt == ind_len:
                         indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
                         ind_len += extend_mem
-        return indices,ind_pt,ind_len
+        return indices,ind_pt,ind_len,loaded_leaves
     ############################## Normal node ##########################################################################
     else:
         if contained == 1:
-            indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
-            indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,1)
+            indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,1)
         else:
             l_bounds = tree[l_idx]
             r_bounds = tree[r_idx]
             ret = check_contained(l_bounds,mins,maxs)
             if ret == 1:
-                indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
+                indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,1)
             else:
                 ret = check_intersect(l_bounds,mins,maxs)
                 if ret == 1:
-                    indices,ind_pt,ind_len = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
+                    indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(l_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,0)
 
             ret = check_contained(r_bounds,mins,maxs)
             if ret == 1:
-                indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,1)
+                indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,1)
             else:
                 ret = check_intersect(r_bounds,mins,maxs)
                 if ret == 1:
-                    indices,ind_pt,ind_len = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,0)
+                    indices,ind_pt,ind_len,loaded_leaves = _recursive_search_limit(r_idx,mins,maxs,tree,n_leaves,n_nodes,indices,ind_pt,ind_len,mmap,extend_mem,max_pts,loaded_leaves,0)
             
-    return indices,ind_pt,ind_len
+    return indices,ind_pt,ind_len,loaded_leaves
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
