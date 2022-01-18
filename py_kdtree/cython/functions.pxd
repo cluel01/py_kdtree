@@ -1,5 +1,5 @@
 cpdef long[::1] recursive_search(double[::1] ,double[::1] , double[:,:,::1] ,int ,
-                    int ,const double[:,:,::1] ,double) 
+                    int ,const double[:,:,::1] ,double,int[::1]) 
 
 cdef (long*,long,long,int) _recursive_search(int ,double[::1] ,double[::1] , double[:,:,::1] ,int , int ,
                           long* , long ,long ,const double[:,:,::1] ,long ,int,int ) nogil
