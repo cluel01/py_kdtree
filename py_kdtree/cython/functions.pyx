@@ -258,7 +258,7 @@ cpdef long[::1] recursive_search_time(double[::1] mins,double[::1] maxs, double[
         clock_gettime(CLOCK_REALTIME, &ts)
         start = ts.tv_sec + (ts.tv_nsec / 1000000000.) 
         pt_is,pt_ct = _recursive_search_time(0,mins,maxs,tree,n_leaves,n_nodes,0,leaves_intersected,pt_is,leaves_contained,pt_ct)
-        ind_pt,loading_time,filter_time,indices = _filter_leaves(leaf,mmap,mins,maxs,indices,ind_pt,leaves_intersected,pt_is,leaves_contained,pt_ct,ind_len,max_pts,extend_mem)
+        ind_pt,loading_time,filter_time,indices,pt_is,pt_ct = _filter_leaves(leaf,mmap,mins,maxs,indices,ind_pt,leaves_intersected,pt_is,leaves_contained,pt_ct,ind_len,max_pts,extend_mem)
         indices_view = np.empty(ind_pt,dtype=np.int64)
         for i in range(ind_pt):
             indices_view[i] = indices[i]
@@ -326,11 +326,12 @@ cdef (int,int) _recursive_search_time(int node_idx,double[::1] mins,double[::1] 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1] mmap,double[::1] mins,double[::1] maxs,long* indices,long ind_pt,int* leaves_intersected,int pt_is,int* leaves_contained,int pt_ct,
+cdef (long,double,double,long*,int,int) _filter_leaves(double* leaf,const double[:,:,::1] mmap,double[::1] mins,double[::1] maxs,long* indices,long ind_pt,int* leaves_intersected,int pt_is,int* leaves_contained,int pt_ct,
                                         long ind_len,int max_pts, long extend_mem) nogil:
-    cdef int i,j,k,isin,contained,leaf_pt
+    cdef int i,j,k,isin,contained,leaf_pt,pt_ct_real, pt_is_real 
     cdef double leaf_val,start,end,loading_time,filter_time 
     cdef timespec ts
+    pt_ct_real, pt_is_real = 0,0
     loading_time , filter_time = 0,0
     
     for i in range(pt_is+pt_ct):
@@ -352,6 +353,7 @@ cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1
                         leaf_pt = mmap.shape[1]-1
                     else:
                         leaf_pt = mmap.shape[1]
+            pt_ct_real += 1
         else:
             leaf_pt = 0
             for j in range(mmap.shape[1]):
@@ -362,6 +364,7 @@ cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1
                 for k in range(mmap.shape[2]):
                     leaf[leaf_pt] = mmap[leaf_idx,j,k]
                     leaf_pt += 1
+            pt_is_real += 1
         clock_gettime(CLOCK_REALTIME, &ts)
         end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
         loading_time += end-start
@@ -379,7 +382,7 @@ cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1
                     end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
                     filter_time += end-start
 
-                    return ind_pt,loading_time,filter_time,indices
+                    return ind_pt,loading_time,filter_time,indices,pt_is_real,pt_ct_real
 
                 if ind_pt == ind_len:
                     indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
@@ -402,7 +405,7 @@ cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1
                         end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
                         filter_time += end-start
 
-                        return ind_pt,loading_time,filter_time,indices
+                        return ind_pt,loading_time,filter_time,indices,pt_is_real,pt_ct_real
 
                     if ind_pt == ind_len:
                         indices = resize_long_array(indices,ind_len,ind_len+extend_mem)
@@ -411,4 +414,4 @@ cdef (long,double,double,long*) _filter_leaves(double* leaf,const double[:,:,::1
         end = ts.tv_sec + (ts.tv_nsec / 1000000000.)
         filter_time += end-start
 
-    return ind_pt,loading_time,filter_time,indices
+    return ind_pt,loading_time,filter_time,indices,pt_is_real,pt_ct_real

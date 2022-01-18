@@ -19,5 +19,5 @@ cpdef long[::1] recursive_search_time(double[::1] ,double[::1] , double[:,:,::1]
 cdef (int,int) _recursive_search_time(int ,double[::1] ,double[::1] , double[:,:,::1] ,int , int ,
                          int ,int* , int , int* , int ) nogil
 
-cdef (long,double,double,long*) _filter_leaves(const double[:,:,::1] ,double[::1],double[::1],long* ,long ,int* ,int ,int* ,int ,
+cdef (long,double,double,long*,int,int) _filter_leaves(const double[:,:,::1] ,double[::1],double[::1],long* ,long ,int* ,int ,int* ,int ,
                                         long ,int, long ) nogil
