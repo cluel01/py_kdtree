@@ -1,3 +1,4 @@
+from shutil import ExecError
 import time
 import numpy as np
 import math
@@ -204,14 +205,17 @@ class KDTree():
                 pts = np.empty((0,self._dim))
             return (inds,pts,self._leaves_visited,end-start,self._loading_time)
 
-    def query_box_cy(self,mins,maxs,max_pts=0,mem_cap=0.001):
+    def query_box_cy(self,mins,maxs,max_pts=0,max_leaves=0,mem_cap=0.001):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
+        
+        if (max_leaves > 0) and (max_pts > 0):
+            raise Exception("Only one max parameter allowed at once!")
 
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
         arr_loaded = np.empty(1,dtype=np.intc)
         start = time.time()
-        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,mem_cap,arr_loaded)
+        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
