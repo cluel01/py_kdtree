@@ -19,9 +19,16 @@ class KDTreeSet():
         elif not isinstance(indexes,list):
             raise Exception("No known datatype for indexes")
 
-        #remove duplicates
-        idx_set = set(tuple(x) for x in indexes)
-        self.indexes = [ list(x) for x in idx_set ]
+        inds = []
+        for i in indexes:
+            if len(set(i)) == len(i):
+                i_new = sorted(i)
+                if i_new not in inds:
+                    inds.append(i_new)
+        if len(inds) > 0:
+            self.indexes = inds
+        else:
+            raise Exception("No valid indexes given!")
 
         self.n = len(indexes)
         self.model_name = model_name
@@ -36,9 +43,6 @@ class KDTreeSet():
             self.path = os.getcwd()
                 
         self.trees = {}
-
-        #unique indexes 
-        indexes = np.unique(indexes,axis=0)
 
         for i in indexes:
             dname = "_".join([group_prefix + str(j) for j in i])
@@ -176,7 +180,7 @@ class KDTreeSet():
             maxs = maxs.astype(self.dtype)
 
         #query stuff
-        dname = "_".join([self.group_prefix + str(j) for j in idx])
+        dname = "_".join([self.group_prefix + str(j) for j in sorted(idx)])
         inds, pts,leaves_visited,time,loading_time = self.trees[dname].query_box(mins,maxs)
 
         return (inds,pts,leaves_visited,time,loading_time)
@@ -188,10 +192,10 @@ class KDTreeSet():
             maxs = maxs.astype(self.dtype)
 
         #query stuff
-        dname = "_".join([self.group_prefix + str(j) for j in idx])
-        inds, time = self.trees[dname].query_box_cy(mins,maxs)
+        dname = "_".join([self.group_prefix + str(j) for j in sorted(idx)])
+        inds, time,loaded_leaves = self.trees[dname].query_box_cy(mins,maxs)
 
-        return (inds,time)
+        return (inds,time,loaded_leaves)
 
     '''
     Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
@@ -285,7 +289,7 @@ class KDTreeSet():
         leaves_visited = 0
         loading_time  = 0.
         for i in range(len(idxs)):
-            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
+            dname = "_".join([self.group_prefix + str(j) for j in sorted(idxs[i])])
             i, lv,_,lt = self.trees[dname].query_box(mins[i],maxs[i],index_only=True)
             inds.append(i)
             leaves_visited += lv
@@ -319,9 +323,11 @@ class KDTreeSet():
 
         inds = []
 
+        loaded_leaves = 0
         for i in range(len(idxs)):
-            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
-            i,_ = self.trees[dname].query_box_cy(mins[i],maxs[i])
+            dname = "_".join([self.group_prefix + str(j) for j in sorted(idxs[i])])
+            i,_,leaves = self.trees[dname].query_box_cy(mins[i],maxs[i])
+            loaded_leaves += leaves
             inds.append(i)
 
         inds = np.concatenate(inds)
@@ -332,9 +338,10 @@ class KDTreeSet():
         if self.verbose:
             print("#############################################")
             print(f"INFO: Query finished in {end-start} seconds")
+            print(f"INFO: Query loaded {loaded_leaves} leaves")
 
 
-        return (inds[order],counts[order],end-start)
+        return (inds[order],counts[order],end-start,loaded_leaves)
 
     def get_fitted_trees(self,array=False):
         fitted_trees = []
@@ -349,7 +356,7 @@ class KDTreeSet():
     def _create_params(self,mins,maxs,idxs,index_only,cython=False):
         params = []
         for i in range(len(idxs)):
-            dname = "_".join([self.group_prefix + str(j) for j in idxs[i]])
+            dname = "_".join([self.group_prefix + str(j) for j in sorted(idxs[i])])
             cfg_dict = self.trees[dname].get_file_cfg()
             if cython:
                 params.append([cfg_dict,mins[i],maxs[i],index_only,cython])
