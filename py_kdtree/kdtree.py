@@ -1,17 +1,15 @@
-from shutil import ExecError
 import time
 import numpy as np
 import math
 import os
 import pickle
 
-from .cython.functions import recursive_search,recursive_search_time
+from .cython.functions import recursive_search
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
 # exexuting the cell mulitple times
 np.random.seed(42)
-          
 
 class KDTree():
     def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,mmap_file=None,verbose=True):
@@ -46,8 +44,13 @@ class KDTree():
             #keep track if the input leaf size matches the loaded 
             self.org_leaf_size = leaf_size
 
-    
+    '''
+    Function fit() creates the k-d tree
+    '''
     def fit(self, X,mmap_idxs=None):
+        '''
+        mmap_idxs: whether X is stored in memory or in a mmap (in case of mmap -> list of dims as input)
+        '''        
         if mmap_idxs is None:
             self._dim = len(X[0])
         else:
@@ -81,11 +84,78 @@ class KDTree():
         else:
             self._build_tree_mmap(X,I,mmap,mmap_idxs)
         end = time.time()
-        #mmap.flush()
         self._save()
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
 
+    '''
+    Pythonic query_box function that returns the contained indices of the points + their
+    features
+    '''
+    def query_box(self,mins,maxs,index_only=False):
+        '''
+        mins: 1D-array of lower boundaries of the hyperrectangle
+        maxs: 1D-array of upper boundaries of the hyperrectangle
+        index_only: if True the features are not returned
+        '''
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+
+        self._leaves_visited = 0
+        self._loading_time = 0.
+
+        start = time.time()
+        indices,points = self._recursive_search(0,mins,maxs,index_only=index_only)
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
+            print(f"INFO: Query loaded {self._leaves_visited} leaves")
+            print(f"INFO: Query took {self._loading_time} seconds loading leaves")
+
+        if len(indices) > 0:
+            inds = np.concatenate(indices,dtype=np.int64)
+        else:
+            inds = np.empty((0,),dtype=np.int64)
+
+        if index_only: 
+            return (inds,self._leaves_visited,end-start,self._loading_time)
+        else:
+            if len(points) > 0:
+                pts = np.concatenate(points,dtype=self.dtype)
+            else:
+                pts = np.empty((0,self._dim))
+            return (inds,pts,self._leaves_visited,end-start,self._loading_time)
+        
+    
+    '''
+    Cythonic query_box function that is more efficient than the Python variant but so far
+    only returns the contained indices of the points
+    '''
+    def query_box_cy(self,mins,maxs,max_pts=0,max_leaves=0,mem_cap=0.001):
+        '''
+        mins: 1D-array of lower boundaries of the hyperrectangle
+        maxs: 1D-array of upper boundaries of the hyperrectangle
+        max_pts: stopps after number of points
+        max_leaves: stopps after number of loaded leaves
+        mem_cap: proportion of the total number of points that is expected to be returned by the query 
+        '''
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+        
+        if (max_leaves > 0) and (max_pts > 0):
+            raise Exception("Only one max parameter allowed at once!")
+
+        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+        arr_loaded = np.empty(1,dtype=np.intc)
+        start = time.time()
+        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
+            print(f"INFO: Box loaded leaves: {arr_loaded[0]}")
+
+        mmap._mmap.close()
+        return indices.base,end-start,arr_loaded[0]
 
     def _build_tree(self, pts, indices,mmap, depth=0,idx=0):
         #if root
@@ -174,77 +244,6 @@ class KDTree():
 
         self._build_tree_mmap(pts, indices[:midx],mmap,pts_mmap_idxs, depth+1,l_idx)
         self._build_tree_mmap(pts, indices[midx:],mmap,pts_mmap_idxs, depth+1,r_idx)
-
-
-    def query_box(self,mins,maxs,index_only=False):
-        if self.tree is None:  
-            raise Exception("Tree not fitted yet!")
-
-        self._leaves_visited = 0
-        self._loading_time = 0.
-
-        start = time.time()
-        indices,points = self._recursive_search(0,mins,maxs,index_only=index_only)
-        end = time.time()
-        if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
-            print(f"INFO: Query loaded {self._leaves_visited} leaves")
-            print(f"INFO: Query took {self._loading_time} seconds loading leaves")
-
-        if len(indices) > 0:
-            inds = np.concatenate(indices,dtype=np.int64)
-        else:
-            inds = np.empty((0,),dtype=np.int64)
-
-        if index_only: 
-            return (inds,self._leaves_visited,end-start,self._loading_time)
-        else:
-            if len(points) > 0:
-                pts = np.concatenate(points,dtype=self.dtype)
-            else:
-                pts = np.empty((0,self._dim))
-            return (inds,pts,self._leaves_visited,end-start,self._loading_time)
-
-    def query_box_cy(self,mins,maxs,max_pts=0,max_leaves=0,mem_cap=0.001):
-        if self.tree is None:  
-            raise Exception("Tree not fitted yet!")
-        
-        if (max_leaves > 0) and (max_pts > 0):
-            raise Exception("Only one max parameter allowed at once!")
-
-        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
-        arr_loaded = np.empty(1,dtype=np.intc)
-        start = time.time()
-        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
-        end = time.time()
-        if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
-            print(f"INFO: Box loaded leaves: {arr_loaded[0]}")
-
-        mmap._mmap.close()
-        return indices.base,end-start,arr_loaded[0]
-    
-    def query_box_cy_profile(self,mins,maxs,max_pts=0,mem_cap=0.001):
-        if self.tree is None:  
-            raise Exception("Tree not fitted yet!")
-
-        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
-        times = np.empty(3,dtype="float64")
-        loaded_leaves = np.empty(2,dtype=np.intc)
-        indices = recursive_search_time(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,mem_cap,times,loaded_leaves)
-        total_time,loading_time,filter_time = times
-        traversal_time = total_time-loading_time-filter_time
-        if self.verbose:
-            print(f"INFO: Box search took: {total_time} seconds")
-            print(f"INFO: Loading time: {loading_time} seconds")
-            print(f"INFO: Filter time: {filter_time} seconds")
-            print(f"INFO: Traversal time: {traversal_time} seconds")
-            print(f"INFO: Fully contained leaves loaded {loaded_leaves[0]}")
-            print(f"INFO: Intersected leaves loaded {loaded_leaves[1]}")
-
-        mmap._mmap.close()
-        return indices.base,total_time,loading_time,filter_time,traversal_time,loaded_leaves[0],loaded_leaves[1]
-
 
     def _recursive_search(self,idx,mins,maxs,indices=None,points=None,index_only=False):
         if points is None:
