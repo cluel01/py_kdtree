@@ -148,6 +148,7 @@ class KDTree():
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
         arr_loaded = np.empty(1,dtype=np.intc)
         start = time.time()
+
         indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
         end = time.time()
         if self.verbose:
@@ -200,7 +201,7 @@ class KDTree():
     def _build_tree_mmap(self, pts, indices,mmap, pts_mmap_idxs,depth=0,idx=0):
             #if root
         if idx == 0: 
-            self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim)
+            self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim,dtype=self.dtype)
 
         bounds = self.tree[idx]
 

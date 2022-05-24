@@ -8,8 +8,8 @@ import numpy as np
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const double[:,:,::1] mmap,int max_pts,int max_leaves,double mem_cap,int[::1] arr_loaded):    
+cpdef long[::1] recursive_search(float[::1] mins,float[::1] maxs, float[:,:,::1] tree,int n_leaves,
+                    int n_nodes,const float[:,:,::1] mmap,int max_pts,int max_leaves,double mem_cap,int[::1] arr_loaded):    
     cdef long[::1] indices_view
     cdef long ind_len = int(mmap.shape[0]*mmap.shape[1]*mem_cap) 
     cdef long extend_mem = ind_len
@@ -36,12 +36,12 @@ cpdef long[::1] recursive_search(double[::1] mins,double[::1] maxs, double[:,:,:
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long*,long,long,int) _recursive_search(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int loaded_leaves, int contained) nogil:
+cdef (long*,long,long,int) _recursive_search(int node_idx,float[::1] mins,float[::1] maxs, float[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const float[:,:,::1] mmap,long extend_mem, int loaded_leaves, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
-    cdef double[:,:] bounds,l_bounds,r_bounds
-    cdef double leaf_val
+    cdef float[:,:] bounds,l_bounds,r_bounds
+    cdef float leaf_val
     
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
@@ -106,12 +106,12 @@ cdef (long*,long,long,int) _recursive_search(int node_idx,double[::1] mins,doubl
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long*,long,long,int) _recursive_search_limit(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int max_pts,int loaded_leaves, int contained) nogil:
+cdef (long*,long,long,int) _recursive_search_limit(int node_idx,float[::1] mins,float[::1] maxs, float[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const float[:,:,::1] mmap,long extend_mem, int max_pts,int loaded_leaves, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
-    cdef double[:,:] bounds,l_bounds,r_bounds
-    cdef double leaf_val
+    cdef float[:,:] bounds,l_bounds,r_bounds
+    cdef float leaf_val
     
     if ind_pt == max_pts:
         return indices,ind_pt,ind_len,loaded_leaves
@@ -183,12 +183,12 @@ cdef (long*,long,long,int) _recursive_search_limit(int node_idx,double[::1] mins
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef (long*,long,long,int) _recursive_search_limit_leaves(int node_idx,double[::1] mins,double[::1] maxs, double[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, long ind_pt,long ind_len,const double[:,:,::1] mmap,long extend_mem, int max_leaves,int loaded_leaves, int contained) nogil:
+cdef (long*,long,long,int) _recursive_search_limit_leaves(int node_idx,float[::1] mins,float[::1] maxs, float[:,:,::1] tree,int n_leaves, int n_nodes,
+                          long* indices, long ind_pt,long ind_len,const float[:,:,::1] mmap,long extend_mem, int max_leaves,int loaded_leaves, int contained) nogil:
     cdef int l_idx, r_idx,intersects, ret,lf_idx,isin,j,k
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
-    cdef double[:,:] bounds,l_bounds,r_bounds
-    cdef double leaf_val
+    cdef float[:,:] bounds,l_bounds,r_bounds
+    cdef float leaf_val
     
     if loaded_leaves == max_leaves:
         return indices,ind_pt,ind_len,loaded_leaves
@@ -255,7 +255,7 @@ cdef (long*,long,long,int) _recursive_search_limit_leaves(int node_idx,double[::
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs) nogil:
+cdef int check_intersect(float[:,:] bounds,float[:] mins,float[:] maxs) nogil:
     cdef int intersects, idx
     
     intersects = 0
@@ -274,7 +274,7 @@ cdef int check_intersect(double[:,:] bounds,double[:] mins,double[:] maxs) nogil
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cdef int check_contained(double[:,:] bounds,double[:] mins,double[:] maxs) nogil:
+cdef int check_contained(float[:,:] bounds,float[:] mins,float[:] maxs) nogil:
     cdef int contained, idx
     
     contained = 0
