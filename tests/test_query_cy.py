@@ -3,18 +3,18 @@ from py_kdtree.kdtree import KDTree
 import time
 np.random.seed(42)
 
-X = np.random.randint(0,100,(100000,3)).astype(np.float64)
+X = np.random.randint(0,100,(100000,3)).astype(np.float32)
 #X = np.random.randint(0,100,(100000,3)).astype(np.float64)
 print(len(np.unique(X,axis=0)))
 
-tree = KDTree(leaf_size=10,path="/home/cluelf/py_kdtree/run",dtype="float64")
+tree = KDTree(leaf_size=10,path="./run",dtype="float32")
 
 tree.fit(X)
 
 
-#inds,pts,lv,t = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=False)
+inds,pts,lv,t,_ = tree.query_box(np.array([0,0,0]),np.array([10,10,10]),index_only=False)
 
-inds,t,_ = tree.query_box_cy(np.array([0,0,0],dtype=np.float64),np.array([10,10,10],dtype="float64"),max_pts=600,max_leaves=0,mem_cap=0.0001)
+#inds,t,_ = tree.query_box_cy(np.array([1,1,1],[0,0,0]],dtype=np.float32),np.array([[2,2,2],[10,10,10]],dtype="float32"),max_pts=600,max_leaves=0,mem_cap=0.0001)
 #inds,_,_,_,_ = tree.query_box(np.array([0,0,0],dtype=np.float64),np.array([10,10,10],dtype="float64"))
 #inds,_,_,_,_,_,_ = tree.query_box_cy_profile(np.array([0,0,0],dtype=np.float64),np.array([10,10,10],dtype="float64"),max_pts=100,mem_cap=0.0001)
 

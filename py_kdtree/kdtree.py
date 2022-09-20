@@ -4,7 +4,10 @@ import math
 import os
 import pickle
 
-from .cython.functions import recursive_search
+from .cython.float32.box_query import recursive_search_box as search_box_32
+from .cython.float32.point_query import recursive_search_point as search_point_32
+from .cython.float64.box_query import recursive_search_box as search_box_64
+from .cython.float64.point_query import recursive_search_point as search_point_64
 
 # we generate random numbers; setting a "seed"
 # will lead to the same "random" set when 
@@ -12,7 +15,7 @@ from .cython.functions import recursive_search
 np.random.seed(42)
 
 class KDTree():
-    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,mmap_file=None,verbose=True):
+    def __init__(self, path=None,dtype="float64",leaf_size=30,model_file=None,inmemory=False,mmap_file=None,verbose=True):
         if path is None:
             path = os.getcwd()
         
@@ -25,6 +28,8 @@ class KDTree():
         self.leaf_size = leaf_size
 
         self.tree = None
+
+        self.inmemory = inmemory
 
         if mmap_file is None:
             self.mmap_file = os.path.join(self.path,"map.mmap")
@@ -43,6 +48,8 @@ class KDTree():
 
             #keep track if the input leaf size matches the loaded 
             self.org_leaf_size = leaf_size
+            if self.inmemory:
+                self._data = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)[:].copy()
 
     '''
     Function fit() creates the k-d tree
@@ -85,6 +92,11 @@ class KDTree():
             self._build_tree_mmap(X,I,mmap,mmap_idxs)
         end = time.time()
         self._save()
+
+        if self.inmemory:
+            self._data = mmap[:].copy()
+        mmap._mmap.close()
+
         if self.verbose:
             print(f"INFO: Building tree took {end-start} seconds")
 
@@ -113,7 +125,7 @@ class KDTree():
             print(f"INFO: Query took {self._loading_time} seconds loading leaves")
 
         if len(indices) > 0:
-            inds = np.concatenate(indices,dtype=np.int64)
+            inds = np.concatenate(indices).astype(np.int64)
         else:
             inds = np.empty((0,),dtype=np.int64)
 
@@ -121,7 +133,7 @@ class KDTree():
             return (inds,self._leaves_visited,end-start,self._loading_time)
         else:
             if len(points) > 0:
-                pts = np.concatenate(points,dtype=self.dtype)
+                pts = np.concatenate(points).astype(self.dtype)
             else:
                 pts = np.empty((0,self._dim))
             return (inds,pts,self._leaves_visited,end-start,self._loading_time)
@@ -145,11 +157,19 @@ class KDTree():
         if (max_leaves > 0) and (max_pts > 0):
             raise Exception("Only one max parameter allowed at once!")
 
-        mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+        if self.inmemory:
+            mmap = self._data
+        else:
+            mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+
         arr_loaded = np.empty(1,dtype=np.intc)
         start = time.time()
 
-        indices = recursive_search(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
+        if self.dtype == "float32":
+            indices = search_box_32(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
+        elif self.dtype == "float64":
+            indices = search_box_64(mins,maxs,self.tree,self.n_leaves,self.n_nodes,mmap,max_pts,max_leaves,mem_cap,arr_loaded)
+    
         end = time.time()
         if self.verbose:
             print(f"INFO: Box search took: {end-start} seconds")
@@ -157,6 +177,34 @@ class KDTree():
 
         mmap._mmap.close()
         return indices.base,end-start,arr_loaded[0]
+
+    def query_point_cy(self,point,k=5):
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+
+        if self.inmemory:
+            mmap = self._data
+        else:
+            mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+
+        start = time.time()
+
+        indices = np.empty(k,dtype=np.int64)
+        distances = np.empty(k,dtype=self.dtype)
+
+        if self.dtype == "float32":
+            search_point_32(point,k,self.tree,self.n_leaves,self.n_nodes,mmap,indices,distances)
+        elif self.dtype == "float64":
+            search_point_64(point,k,self.tree,self.n_leaves,self.n_nodes,mmap,indices,distances)
+
+        order = np.argsort(distances)
+        indices = indices[order]
+        distances = distances[order]
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
+
+        return indices,distances,end-start
 
     def _build_tree(self, pts, indices,mmap, depth=0,idx=0):
         #if root
