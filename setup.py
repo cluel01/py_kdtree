@@ -10,7 +10,16 @@ from Cython.Build import cythonize
 import numpy as np
 
 
-extensions = [Extension('py_kdtree.cython.functions', ["py_kdtree/cython/functions.pyx"],
+extensions = [Extension('py_kdtree.cython.float32.box_query', ["py_kdtree/cython/float32/box_query.pyx"],
+            include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
+            extra_link_args=['-fopenmp']),
+              Extension('py_kdtree.cython.float32.point_query', ["py_kdtree/cython/float32/point_query.pyx"],
+            include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
+        extra_link_args=['-fopenmp']),
+        Extension('py_kdtree.cython.float64.box_query', ["py_kdtree/cython/float64/box_query.pyx"],
+            include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
+            extra_link_args=['-fopenmp']),
+              Extension('py_kdtree.cython.float64.point_query', ["py_kdtree/cython/float64/point_query.pyx"],
             include_dirs=[np.get_include()],extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'])]
 

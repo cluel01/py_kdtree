@@ -21,5 +21,5 @@ ens.fit_seq_mmap(x_files,300000,n_cached=3,mmap_path="/home/cluelf/py_kdtree/run
 #ens.fit_seq(x_files,n_cached=3)
 
 
-inds,pts = ens.query(np.array([0,0,0]),np.array([0.5,.1,.1]),idxs[2])
-print(len(inds))
+res = ens.query(np.array([0,0,0]),np.array([0.5,.1,.1]),idxs[2])
+print(len(res[0]))

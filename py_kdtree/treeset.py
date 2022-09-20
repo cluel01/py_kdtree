@@ -10,7 +10,7 @@ from .kdtree import KDTree
 
 
 class KDTreeSet():
-    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,group_prefix="",**kwargs) -> None:       
+    def __init__(self,indexes,path=None,dtype="float64",model_name="tree.pkl",verbose=True,group_prefix="",**kwargs):       
         if isinstance(indexes,np.ndarray):
             if len(indexes.shape) == 2:
                 indexes = indexes.tolist()
@@ -54,6 +54,9 @@ class KDTreeSet():
     def __len__(self):
         return self.n
 
+    '''
+    Function for creating set of k-d tree indices where X can fit into memory.
+    '''
     def fit(self,X):    
         for i in self.indexes:
             dname = "_".join([self.group_prefix + str(j) for j in i])
@@ -65,60 +68,16 @@ class KDTreeSet():
                     print(f"INFO: model {dname} is trained")
                 self.trees[dname].fit(X[:,i])
 
-
     '''
-    ncached_idx - defines the number of indices are stored at once in memory
+    Function for creating set of k-d tree indices where X cannot fit into memory and therefore needs to be loaded
+    sequentially from disk and stored in mmap.
     '''
-
-    def fit_seq(self,X_parts_list,parts_path=None,n_cached=1,data_driver="npy"):
-        assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
-
-        if parts_path is None:
-            parts_path = self.path
-
-        #Filter trained idxs
-        idxs = []
-        for i in self.indexes:
-            dname = "_".join([self.group_prefix + str(j) for j in i])
-            if self.trees[dname].tree is None:
-                idxs.append(i)
-
-        if len(idxs) > 0:
-            c = 0
-            while c < len(idxs):
-                sub = idxs[c:c+n_cached]
-                flat_idx = [item for sublist in sub for item in sublist] #Flatten list
-                data = []
-                for f in X_parts_list:
-                    fname = os.path.join(parts_path,f)
-                    if data_driver == "npy":
-                        x = np.load(fname)[:,flat_idx]
-                    elif data_driver == "torch":
-                        x = torch.load(fname)[:,flat_idx].detach().numpy()
-                    else:
-                        raise Exception(f"Not existing data driver {data_driver}!")
-                    if x.dtype != np.dtype(self.dtype):
-                        x = x.astype(self.dtype)
-                    data.append(x)
-                X = np.vstack(data)
-
-                #Train models
-                for i in range(len(sub)):
-                    start = len([item for sublist in sub[:i] for item in sublist])
-                    end = start+len(sub[i])
-                    dname = dname = "_".join([self.group_prefix + str(j) for j in sub[i]])
-                    if self.verbose:
-                        print(f"INFO: Model {dname} is trained")
-                    self.trees[dname].fit(X[:,start:end])
-                c += n_cached
-
-            self.trained = True
-        else:
-            if self.verbose:
-                print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
-
-
     def fit_seq_mmap(self,X_parts_list,size,n_cached=1,parts_path=None,mmap_path=None,data_driver="npy"):
+        '''
+        X_parts_list: list of filenames that contain the data chunks
+        size: total number of points
+        data_driver: either data can be stored via npy (numpy) or torch
+        '''
         assert len(self.trees) == len(self.indexes), "Error in initialization of trees - not fitting tree count"
 
         if parts_path is None:
@@ -173,39 +132,54 @@ class KDTreeSet():
             if self.verbose:
                 print("INFO: Skipping train as the model has already been trained! Change model_file in case of a new model!")
 
+    '''
+    Function for querying single tree in treeset via Python function
+    '''
     def query(self,mins,maxs,idx):
+        '''
+        mins: 1D-array of lower boundaries of the hyperrectangle
+        maxs: 1D-array of upper boundaries of the hyperrectangle
+        idx: list containing the feature indices of the hyperrectangle
+        '''
         if mins.dtype != np.dtype(self.dtype):
             mins = mins.astype(self.dtype)
         if maxs.dtype != np.dtype(self.dtype):
             maxs = maxs.astype(self.dtype)
 
-        #query stuff
         dname = "_".join([self.group_prefix + str(j) for j in sorted(idx)])
         inds, pts,leaves_visited,time,loading_time = self.trees[dname].query_box(mins,maxs)
 
         return (inds,pts,leaves_visited,time,loading_time)
 
+    '''
+    Function for querying single tree in treeset via Cython function
+    '''
     def query_cy(self,mins,maxs,idx):
+        '''
+        mins: 1D-array of lower boundaries of the hyperrectangle
+        maxs: 1D-array of upper boundaries of the hyperrectangle
+        idx: list containing the feature indices of the hyperrectangle
+        '''
         if mins.dtype != np.dtype(self.dtype):
             mins = mins.astype(self.dtype)
         if maxs.dtype != np.dtype(self.dtype):
             maxs = maxs.astype(self.dtype)
 
-        #query stuff
         dname = "_".join([self.group_prefix + str(j) for j in sorted(idx)])
         inds, time,loaded_leaves = self.trees[dname].query_box_cy(mins,maxs)
 
         return (inds,time,loaded_leaves)
 
     '''
+    Function for performing multiple box queries simultanously returning the indices of the points + their features
     Function multi_query works slower than the multi_query_ranked since it also filters for the complete found points
-
-    Input:
-    mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
-                    -> lists required for varying dims of indices
     '''
-    
     def multi_query(self,mins,maxs,idxs,no_pts=False,n_jobs=-1):
+        '''
+        mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
+        idxs: list containing lists of feature indices of the hyperrectangles
+        no_pts: does not return the features of the found points
+        '''
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
                 mins = mins.astype(self.dtype)
@@ -224,12 +198,6 @@ class KDTreeSet():
                 n_jobs = total_cpus
         else:
             n_jobs = n_jobs
-
-        #sort the boxes in case all have the same length!
-        #order = np.lexsort([idxs[:,i] for i in reversed(range(idxs.shape[1]))])
-        #mins = mins[order]
-        #maxs = maxs[order]
-        #idxs = idxs[order]
 
         params = self._create_params(mins,maxs,idxs,False,False)
 
@@ -273,7 +241,16 @@ class KDTreeSet():
         inds = np.array(i_list,dtype=np.int64)
         return (inds,points,leaves_visited,end-start,loading_time)
 
+    '''
+    Function for performing multiple box queries simultanously returning only the indices of the found points +
+    the counts of how many times they were found within all boxes - Python version
+    '''
     def multi_query_ranked(self,mins,maxs,idxs):
+        '''
+        mins and maxs : arrays or lists of min/max boundaries (in 2D array format) 
+        idxs: list containing lists of feature indices of the hyperrectangles
+        no_pts: does not return the features of the found points
+        '''
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
                 mins = mins.astype(self.dtype)
@@ -309,7 +286,10 @@ class KDTreeSet():
 
         return (inds[order],counts[order],leaves_visited,end-start,loading_time)
 
-
+    '''
+    Function for performing multiple box queries simultanously returning only the indices of the found points +
+    the counts of how many times they were found within all boxes - Cython version
+    '''
     def multi_query_ranked_cy(self,mins,maxs,idxs):
         if isinstance(mins,np.ndarray):
             if mins.dtype != np.dtype(self.dtype):
@@ -343,6 +323,9 @@ class KDTreeSet():
 
         return (inds[order],counts[order],end-start,loaded_leaves)
 
+    '''
+    Function that returns all trees of the treeset that are built.
+    '''
     def get_fitted_trees(self,array=False):
         fitted_trees = []
         for k,v in self.trees.items():
