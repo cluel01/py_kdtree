@@ -1,3 +1,4 @@
+from curses import def_shell_mode
 import time
 import numpy as np
 import math
@@ -206,6 +207,32 @@ class KDTree():
 
         return indices,distances,end-start
 
+    def query_point(self,point,k=5):
+        if self.tree is None:  
+            raise Exception("Tree not fitted yet!")
+
+        if self.inmemory:
+            mmap = self._data
+        else:
+            mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
+
+        start = time.time()
+
+        indices = np.empty(k,dtype=np.int64)
+        distances = np.empty(k,dtype=self.dtype)
+
+        distances[:] = np.inf
+        indices,distances = self._query_point(0,0,point,k,indices,distances,mmap)
+        
+        order = np.argsort(distances)
+        indices = indices[order]
+        distances = distances[order]
+        end = time.time()
+        if self.verbose:
+            print(f"INFO: Box search took: {end-start} seconds")
+
+        return indices,distances,end-start
+
     def _build_tree(self, pts, indices,mmap, depth=0,idx=0):
         #if root
         if idx == 0: 
@@ -327,6 +354,44 @@ class KDTree():
             self._recursive_search(r_idx,mins,maxs,indices,points)
 
         return indices,points
+
+    def _query_point(self,node_idx,depth,point,k,indices,distances,mmap):
+        l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
+        ############################## Leaf ##########################################################################
+        if (l_idx >= self.tree.shape[0]) and (r_idx >= self.tree.shape[0]):
+            #calculate distance for each contained point and check whether it is smaller than the ones found so far
+            lf_idx = self.n_leaves+node_idx-self.n_nodes
+            for j in range(mmap.shape[1]):
+                if j == mmap.shape[1]-1:
+                    if mmap[lf_idx,j,0] == -1.:
+                        continue
+                dist = np.linalg.norm(mmap[lf_idx,j,1:] - point)
+                max_dist = np.max(distances)
+                if dist < max_dist:
+                    dist_idx = np.argmax(distances)
+                    distances[dist_idx] = dist
+                    indices[dist_idx] = int(mmap[lf_idx,j,0])
+            return indices,distances
+        
+        else:
+            axis = depth % self.tree.shape[1]
+
+            median = self.tree[l_idx][axis][1] #self.tree[node_idx][axis][1]
+            if point[axis] < median:
+                first = l_idx
+                second = r_idx
+            else:
+                first = r_idx
+                second = l_idx
+            indices,distances = self._query_point(first,depth+1,point,k,indices,distances,mmap)
+            
+            max_dist = np.max(distances)
+            max_dist_sub = abs(median - point[axis])
+            if max_dist_sub < max_dist:
+                indices,distances = self._query_point(second,depth+1,point,k,indices,distances,mmap)
+
+            return indices,distances
+
 
     def _load(self):
         with open(self.model_file, 'rb') as file:
