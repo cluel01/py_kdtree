@@ -12,7 +12,7 @@ cdef extern from "math.h":
 cpdef void recursive_search_point(double[::1] point,int k, double[:,:,::1] tree,int n_leaves,
                     int n_nodes,const double[:,:,::1] mmap,long[::1] indices_view,double[::1] distances_view):    
     cdef int i
-    cdef long depth = 0 
+    cdef long depth = 0
     cdef long* indices = <long*> malloc(k * sizeof(long))
     cdef double* distances =   <double*> malloc(k * sizeof(double))
 
@@ -63,7 +63,7 @@ cdef (long*,double*) _recursive_search_point(int node_idx,double[::1] point,int 
     else:  
         axis = depth % tree.shape[1]
 
-        median = tree[node_idx][axis][1]
+        median = tree[l_idx][axis][1]
         if point[axis] < median:
             first = l_idx
             second = r_idx
@@ -71,10 +71,12 @@ cdef (long*,double*) _recursive_search_point(int node_idx,double[::1] point,int 
             first = r_idx
             second = l_idx
         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+        
         max_dist = get_max(distances,k)
         max_dist_sub = fabs(median - point[axis])
         if max_dist_sub < max_dist:
             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+
         return indices,distances
 
 

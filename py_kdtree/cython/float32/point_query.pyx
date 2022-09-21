@@ -63,7 +63,7 @@ cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k,
     else:  
         axis = depth % tree.shape[1]
 
-        median = tree[node_idx][axis][1]
+        median = tree[l_idx][axis][1]
         if point[axis] < median:
             first = l_idx
             second = r_idx

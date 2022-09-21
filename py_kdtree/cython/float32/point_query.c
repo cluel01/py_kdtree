@@ -2850,7 +2850,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  *     else:
  *         axis = depth % tree.shape[1]             # <<<<<<<<<<<<<<
  * 
- *         median = tree[node_idx][axis][1]
+ *         median = tree[l_idx][axis][1]
  */
   /*else*/ {
     __pyx_v_axis = (__pyx_v_depth % (__pyx_v_tree.shape[1]));
@@ -2858,18 +2858,18 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
     /* "py_kdtree/cython/float32/point_query.pyx":66
  *         axis = depth % tree.shape[1]
  * 
- *         median = tree[node_idx][axis][1]             # <<<<<<<<<<<<<<
+ *         median = tree[l_idx][axis][1]             # <<<<<<<<<<<<<<
  *         if point[axis] < median:
  *             first = l_idx
  */
-    __pyx_t_9 = __pyx_v_node_idx;
+    __pyx_t_9 = __pyx_v_l_idx;
     __pyx_t_8 = __pyx_v_axis;
     __pyx_t_14 = 1;
     __pyx_v_median = (*((float *) ( /* dim=2 */ ((char *) (((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_tree.data + __pyx_t_9 * __pyx_v_tree.strides[0]) ) + __pyx_t_8 * __pyx_v_tree.strides[1]) )) + __pyx_t_14)) )));
 
     /* "py_kdtree/cython/float32/point_query.pyx":67
  * 
- *         median = tree[node_idx][axis][1]
+ *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:             # <<<<<<<<<<<<<<
  *             first = l_idx
  *             second = r_idx
@@ -2879,7 +2879,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
     if (__pyx_t_3) {
 
       /* "py_kdtree/cython/float32/point_query.pyx":68
- *         median = tree[node_idx][axis][1]
+ *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:
  *             first = l_idx             # <<<<<<<<<<<<<<
  *             second = r_idx
@@ -2898,7 +2898,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
 
       /* "py_kdtree/cython/float32/point_query.pyx":67
  * 
- *         median = tree[node_idx][axis][1]
+ *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:             # <<<<<<<<<<<<<<
  *             first = l_idx
  *             second = r_idx
