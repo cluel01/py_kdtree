@@ -1,4 +1,3 @@
-from curses import def_shell_mode
 import time
 import numpy as np
 import math
@@ -64,7 +63,8 @@ class KDTree():
         else:
             self._dim = len(mmap_idxs)
         
-        assert np.dtype(self.dtype) == X.dtype, f"X dtype {X.dtype} does not match with Model dtype {self.dtype}"
+        if (np.dtype(self.dtype) != X.dtype):
+            print(f"WARNING: X dtype {X.dtype} does not match with Model dtype {self.dtype}")
 
         if self.tree is not None:
             if self.verbose:
@@ -74,7 +74,11 @@ class KDTree():
 
             self.leaf_size = self.org_leaf_size
 
-        I = np.array(range(len(X)))
+        if len(X) < 2_147_483_647:
+            I = np.arange(len(X),dtype="int32")
+        else:
+            I = np.arange(len(X),dtype="int64")
+
 
         self.depth = self._calc_depth(len(X))
         #update the leaf size with the actual value
@@ -121,7 +125,7 @@ class KDTree():
         indices,points = self._recursive_search(0,mins,maxs,index_only=index_only)
         end = time.time()
         if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
+            print(f"INFO: Query took: {end-start} seconds")
             print(f"INFO: Query loaded {self._leaves_visited} leaves")
             print(f"INFO: Query took {self._loading_time} seconds loading leaves")
 
@@ -173,8 +177,8 @@ class KDTree():
     
         end = time.time()
         if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
-            print(f"INFO: Box loaded leaves: {arr_loaded[0]}")
+            print(f"INFO: Query took: {end-start} seconds")
+            print(f"INFO: Query loaded leaves: {arr_loaded[0]}")
 
         mmap._mmap.close()
         return indices.base,end-start,arr_loaded[0]
@@ -203,7 +207,7 @@ class KDTree():
         distances = distances[order]
         end = time.time()
         if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
+            print(f"INFO: Query search took: {end-start} seconds")
 
         return indices,distances,end-start
 
@@ -229,7 +233,7 @@ class KDTree():
         distances = distances[order]
         end = time.time()
         if self.verbose:
-            print(f"INFO: Box search took: {end-start} seconds")
+            print(f"INFO: Query search took: {end-start} seconds")
 
         return indices,distances,end-start
 
@@ -243,23 +247,30 @@ class KDTree():
         if len(pts) <= self.leaf_size: 
             pts = np.c_[indices,pts]
 
+            if pts.dtype != np.dtype(self.dtype):
+                pts = pts.astype(self.dtype)
+
             shape = pts.shape
             if shape[0] != self.leaf_size:
                 nan = np.array([-1,*[-np.inf]*self._dim],dtype=self.dtype)
                 pts = np.vstack([pts,nan])
             
             lf_idx = self.n_leaves+idx-self.n_nodes
+
             mmap[lf_idx,:] = pts[:]
             return 
         
         axis = depth % self._dim
         
-        part = pts[:,axis].argsort()
+        pts_ax = pts[:,axis]
+        # if pts_ax.dtype != np.dtype(self.dtype):
+        #     pts_ax = pts_ax.astype(self.dtype)
+        part = pts_ax.argsort()
         indices = indices[part]
-        pts = pts[part]
+        pts_ax = pts_ax[part]
 
         midx = math.floor(len(pts)/2)
-        median = pts[midx, axis]
+        median = pts_ax[midx]
 
         l_bounds,r_bounds = bounds.copy(),bounds.copy()
         l_bounds[axis,1] = median
@@ -284,6 +295,9 @@ class KDTree():
             #Load into memory
             pts_sub = pts[indices,:][:,pts_mmap_idxs]
             pts = np.c_[indices,pts_sub]
+
+            if pts.dtype != np.dtype(self.dtype):
+                pts = pts.astype(self.dtype)
 
             shape = pts.shape
             if shape[0] != self.leaf_size:

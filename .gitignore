@@ -12,6 +12,7 @@ run
 
 # C extensions
 *.so
+*.c
 
 # Packages
 *.egg
