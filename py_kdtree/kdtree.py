@@ -302,8 +302,6 @@ class KDTree():
 
         bounds = self.tree[idx]
 
-        print("Depth: ",depth)
-
         if len(indices) <= self.leaf_size:
             pts_sub = pts[indices,:][:,pts_mmap_idxs]
             pts = np.c_[indices,pts_sub]
@@ -323,18 +321,15 @@ class KDTree():
         axis = depth % self._dim
         pts_axis = pts_mmap_idxs[axis]
         
-        print("Load start")
+
         #Load into memory
         if pts.flags["C_CONTIGUOUS"]:
             pts_ax = self._load_col_from_mmap(pts,indices,pts_axis)
         elif pts.flags["F_CONTIGUOUS"]:
             pts_ax = pts[:,pts_axis]
             pts_ax = pts_ax[indices]
-        print("Load finished")
 
-        print("Sort start")
         part = pts_ax.argsort()
-        print("Sort finished")
         indices = indices[part]
         pts_ax = pts_ax[part]
 
