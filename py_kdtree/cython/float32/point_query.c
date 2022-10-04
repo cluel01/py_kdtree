@@ -11,7 +11,7 @@
             "-fopenmp"
         ],
         "include_dirs": [
-            "/home/ubuntu/christian/py_kdtree/lib/python3.6/site-packages/numpy/core/include"
+            "/home/caduser/christian/py_kdtree/lib/python3.6/site-packages/numpy/core/include"
         ],
         "name": "py_kdtree.cython.float32.point_query",
         "sources": [
@@ -1092,19 +1092,20 @@ struct __pyx_array_obj;
 struct __pyx_MemviewEnum_obj;
 struct __pyx_memoryview_obj;
 struct __pyx_memoryviewslice_obj;
-struct __pyx_ctuple_long__ptr__and_float__ptr;
-typedef struct __pyx_ctuple_long__ptr__and_float__ptr __pyx_ctuple_long__ptr__and_float__ptr;
+struct __pyx_ctuple_long__ptr__and_float__ptr__and_int;
+typedef struct __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_ctuple_long__ptr__and_float__ptr__and_int;
 
-/* "py_kdtree/cython/float32/point_query.pyx":36
+/* "py_kdtree/cython/float32/point_query.pyx":37
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * @cython.cdivision(True)
- * cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,             # <<<<<<<<<<<<<<
- *                           long* indices, float* distances,const float[:,:,::1] mmap) nogil:
+ * cdef (long*,float*,int) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,int stop_leaves,             # <<<<<<<<<<<<<<
+ *                           int leaf_count, long* indices, float* distances,const float[:,:,::1] mmap) nogil:
  *     cdef int l_idx, r_idx,axis,first,second, lf_idx,dist_idx, i,j
  */
-struct __pyx_ctuple_long__ptr__and_float__ptr {
+struct __pyx_ctuple_long__ptr__and_float__ptr__and_int {
   long *f0;
   float *f1;
+  int f2;
 };
 
 /* "View.MemoryView":106
@@ -1898,8 +1899,8 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__Pyx_memviewslice, int, __Pyx_memviewslice, int, int, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
-static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(int, __Pyx_memviewslice, int, int, __Pyx_memviewslice, int, int, long *, float *, __Pyx_memviewslice); /*proto*/
+static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__Pyx_memviewslice, int, __Pyx_memviewslice, int, int, int, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int __pyx_skip_dispatch); /*proto*/
+static __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(int, __Pyx_memviewslice, int, int, __Pyx_memviewslice, int, int, int, int, long *, float *, __Pyx_memviewslice); /*proto*/
 static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *, int); /*proto*/
 static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *, int); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
@@ -2006,6 +2007,7 @@ static const char __pyx_k_pyx_result[] = "__pyx_result";
 static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_MemoryError[] = "MemoryError";
 static const char __pyx_k_PickleError[] = "PickleError";
+static const char __pyx_k_stop_leaves[] = "stop_leaves";
 static const char __pyx_k_indices_view[] = "indices_view";
 static const char __pyx_k_pyx_checksum[] = "__pyx_checksum";
 static const char __pyx_k_stringsource[] = "stringsource";
@@ -2126,6 +2128,7 @@ static PyObject *__pyx_n_s_size;
 static PyObject *__pyx_n_s_start;
 static PyObject *__pyx_n_s_step;
 static PyObject *__pyx_n_s_stop;
+static PyObject *__pyx_n_s_stop_leaves;
 static PyObject *__pyx_kp_s_strided_and_direct;
 static PyObject *__pyx_kp_s_strided_and_direct_or_indirect;
 static PyObject *__pyx_kp_s_strided_and_indirect;
@@ -2137,7 +2140,7 @@ static PyObject *__pyx_kp_s_unable_to_allocate_array_data;
 static PyObject *__pyx_kp_s_unable_to_allocate_shape_and_str;
 static PyObject *__pyx_n_s_unpack;
 static PyObject *__pyx_n_s_update;
-static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view); /* proto */
+static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, int __pyx_v_stop_leaves, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_array___pyx_pf_15View_dot_MemoryView_5array_4__dealloc__(struct __pyx_array_obj *__pyx_v_self); /* proto */
@@ -2221,38 +2224,49 @@ static PyObject *__pyx_codeobj__26;
 /* "py_kdtree/cython/float32/point_query.pyx":12
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
- * cpdef void recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,             # <<<<<<<<<<<<<<
- *                     int n_nodes,const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
+ * cpdef int recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,             # <<<<<<<<<<<<<<
+ *                     int n_nodes,int stop_leaves, const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
  *     cdef int i
  */
 
 static PyObject *__pyx_pw_9py_kdtree_6cython_7float32_11point_query_1recursive_search_point(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, int __pyx_v_stop_leaves, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_i;
+  int __pyx_v_leaf_count;
   long __pyx_v_depth;
   long *__pyx_v_indices;
   float *__pyx_v_distances;
+  int __pyx_r;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
   int __pyx_t_2;
   int __pyx_t_3;
-  __pyx_ctuple_long__ptr__and_float__ptr __pyx_t_4;
+  __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_t_4;
   long *__pyx_t_5;
   float *__pyx_t_6;
   Py_ssize_t __pyx_t_7;
   __Pyx_RefNannySetupContext("recursive_search_point", 0);
 
   /* "py_kdtree/cython/float32/point_query.pyx":15
- *                     int n_nodes,const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
+ *                     int n_nodes,int stop_leaves, const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
  *     cdef int i
+ *     cdef int leaf_count = 0             # <<<<<<<<<<<<<<
+ *     cdef long depth = 0
+ *     cdef long* indices = <long*> malloc(k * sizeof(long))
+ */
+  __pyx_v_leaf_count = 0;
+
+  /* "py_kdtree/cython/float32/point_query.pyx":16
+ *     cdef int i
+ *     cdef int leaf_count = 0
  *     cdef long depth = 0             # <<<<<<<<<<<<<<
  *     cdef long* indices = <long*> malloc(k * sizeof(long))
  *     cdef float* distances =   <float*> malloc(k * sizeof(float))
  */
   __pyx_v_depth = 0;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":16
- *     cdef int i
+  /* "py_kdtree/cython/float32/point_query.pyx":17
+ *     cdef int leaf_count = 0
  *     cdef long depth = 0
  *     cdef long* indices = <long*> malloc(k * sizeof(long))             # <<<<<<<<<<<<<<
  *     cdef float* distances =   <float*> malloc(k * sizeof(float))
@@ -2260,7 +2274,7 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
  */
   __pyx_v_indices = ((long *)malloc((__pyx_v_k * (sizeof(long)))));
 
-  /* "py_kdtree/cython/float32/point_query.pyx":17
+  /* "py_kdtree/cython/float32/point_query.pyx":18
  *     cdef long depth = 0
  *     cdef long* indices = <long*> malloc(k * sizeof(long))
  *     cdef float* distances =   <float*> malloc(k * sizeof(float))             # <<<<<<<<<<<<<<
@@ -2269,7 +2283,7 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
  */
   __pyx_v_distances = ((float *)malloc((__pyx_v_k * (sizeof(float)))));
 
-  /* "py_kdtree/cython/float32/point_query.pyx":19
+  /* "py_kdtree/cython/float32/point_query.pyx":20
  *     cdef float* distances =   <float*> malloc(k * sizeof(float))
  * 
  *     try:             # <<<<<<<<<<<<<<
@@ -2278,7 +2292,7 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
  */
   /*try:*/ {
 
-    /* "py_kdtree/cython/float32/point_query.pyx":21
+    /* "py_kdtree/cython/float32/point_query.pyx":22
  *     try:
  *         #initializes distances
  *         for i in range(k):             # <<<<<<<<<<<<<<
@@ -2290,32 +2304,34 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
     for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
       __pyx_v_i = __pyx_t_3;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":22
+      /* "py_kdtree/cython/float32/point_query.pyx":23
  *         #initializes distances
  *         for i in range(k):
  *             distances[i] = INFINITY             # <<<<<<<<<<<<<<
  * 
- *         indices,distances = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *         indices,distances,leaf_count = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  */
       (__pyx_v_distances[__pyx_v_i]) = INFINITY;
     }
 
-    /* "py_kdtree/cython/float32/point_query.pyx":24
+    /* "py_kdtree/cython/float32/point_query.pyx":25
  *             distances[i] = INFINITY
  * 
- *         indices,distances = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,indices,distances,mmap)             # <<<<<<<<<<<<<<
+ *         indices,distances,leaf_count = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)             # <<<<<<<<<<<<<<
  *         for i in range(k):
  *             indices_view[i] = indices[i]
  */
-    __pyx_t_4 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(0, __pyx_v_point, __pyx_v_k, __pyx_v_depth, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
+    __pyx_t_4 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(0, __pyx_v_point, __pyx_v_k, __pyx_v_depth, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_stop_leaves, __pyx_v_leaf_count, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
     __pyx_t_5 = __pyx_t_4.f0;
     __pyx_t_6 = __pyx_t_4.f1;
+    __pyx_t_1 = __pyx_t_4.f2;
     __pyx_v_indices = __pyx_t_5;
     __pyx_v_distances = __pyx_t_6;
+    __pyx_v_leaf_count = __pyx_t_1;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":25
+    /* "py_kdtree/cython/float32/point_query.pyx":26
  * 
- *         indices,distances = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *         indices,distances,leaf_count = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  *         for i in range(k):             # <<<<<<<<<<<<<<
  *             indices_view[i] = indices[i]
  *             distances_view[i] = distances[i]
@@ -2325,39 +2341,40 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
     for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
       __pyx_v_i = __pyx_t_3;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":26
- *         indices,distances = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,indices,distances,mmap)
+      /* "py_kdtree/cython/float32/point_query.pyx":27
+ *         indices,distances,leaf_count = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  *         for i in range(k):
  *             indices_view[i] = indices[i]             # <<<<<<<<<<<<<<
  *             distances_view[i] = distances[i]
- *         return
+ *         return leaf_count
  */
       __pyx_t_7 = __pyx_v_i;
       *((long *) ( /* dim=0 */ ((char *) (((long *) __pyx_v_indices_view.data) + __pyx_t_7)) )) = (__pyx_v_indices[__pyx_v_i]);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":27
+      /* "py_kdtree/cython/float32/point_query.pyx":28
  *         for i in range(k):
  *             indices_view[i] = indices[i]
  *             distances_view[i] = distances[i]             # <<<<<<<<<<<<<<
- *         return
+ *         return leaf_count
  *     finally:
  */
       __pyx_t_7 = __pyx_v_i;
       *((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_distances_view.data) + __pyx_t_7)) )) = (__pyx_v_distances[__pyx_v_i]);
     }
 
-    /* "py_kdtree/cython/float32/point_query.pyx":28
+    /* "py_kdtree/cython/float32/point_query.pyx":29
  *             indices_view[i] = indices[i]
  *             distances_view[i] = distances[i]
- *         return             # <<<<<<<<<<<<<<
+ *         return leaf_count             # <<<<<<<<<<<<<<
  *     finally:
  *         free(indices)
  */
+    __pyx_r = __pyx_v_leaf_count;
     goto __pyx_L3_return;
   }
 
-  /* "py_kdtree/cython/float32/point_query.pyx":30
- *         return
+  /* "py_kdtree/cython/float32/point_query.pyx":31
+ *         return leaf_count
  *     finally:
  *         free(indices)             # <<<<<<<<<<<<<<
  *         free(distances)
@@ -2365,9 +2382,10 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
  */
   /*finally:*/ {
     __pyx_L3_return: {
+      __pyx_t_1 = __pyx_r;
       free(__pyx_v_indices);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":31
+      /* "py_kdtree/cython/float32/point_query.pyx":32
  *     finally:
  *         free(indices)
  *         free(distances)             # <<<<<<<<<<<<<<
@@ -2375,6 +2393,7 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  */
       free(__pyx_v_distances);
+      __pyx_r = __pyx_t_1;
       goto __pyx_L0;
     }
   }
@@ -2382,14 +2401,15 @@ static void __pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_p
   /* "py_kdtree/cython/float32/point_query.pyx":12
  * @cython.boundscheck(False) # turn off bounds-checking for entire function
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
- * cpdef void recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,             # <<<<<<<<<<<<<<
- *                     int n_nodes,const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
+ * cpdef int recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,             # <<<<<<<<<<<<<<
+ *                     int n_nodes,int stop_leaves, const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):
  *     cdef int i
  */
 
   /* function exit code */
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
+  return __pyx_r;
 }
 
 /* Python wrapper */
@@ -2400,6 +2420,7 @@ static PyObject *__pyx_pw_9py_kdtree_6cython_7float32_11point_query_1recursive_s
   __Pyx_memviewslice __pyx_v_tree = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_n_leaves;
   int __pyx_v_n_nodes;
+  int __pyx_v_stop_leaves;
   __Pyx_memviewslice __pyx_v_mmap = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_indices_view = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_distances_view = { 0, 0, { 0 }, { 0 }, { 0 } };
@@ -2410,12 +2431,14 @@ static PyObject *__pyx_pw_9py_kdtree_6cython_7float32_11point_query_1recursive_s
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("recursive_search_point (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_point,&__pyx_n_s_k,&__pyx_n_s_tree,&__pyx_n_s_n_leaves,&__pyx_n_s_n_nodes,&__pyx_n_s_mmap,&__pyx_n_s_indices_view,&__pyx_n_s_distances_view,0};
-    PyObject* values[8] = {0,0,0,0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_point,&__pyx_n_s_k,&__pyx_n_s_tree,&__pyx_n_s_n_leaves,&__pyx_n_s_n_nodes,&__pyx_n_s_stop_leaves,&__pyx_n_s_mmap,&__pyx_n_s_indices_view,&__pyx_n_s_distances_view,0};
+    PyObject* values[9] = {0,0,0,0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  9: values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
+        CYTHON_FALLTHROUGH;
         case  8: values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
         CYTHON_FALLTHROUGH;
         case  7: values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
@@ -2444,49 +2467,55 @@ static PyObject *__pyx_pw_9py_kdtree_6cython_7float32_11point_query_1recursive_s
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_k)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 1); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 1); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_tree)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 2); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 2); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_n_leaves)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 3); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 3); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_n_nodes)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 4); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 4); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
-        if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_mmap)) != 0)) kw_args--;
+        if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_stop_leaves)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 5); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 5); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  6:
-        if (likely((values[6] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_indices_view)) != 0)) kw_args--;
+        if (likely((values[6] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_mmap)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 6); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 6); __PYX_ERR(0, 12, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  7:
-        if (likely((values[7] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_distances_view)) != 0)) kw_args--;
+        if (likely((values[7] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_indices_view)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, 7); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 7); __PYX_ERR(0, 12, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  8:
+        if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_distances_view)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, 8); __PYX_ERR(0, 12, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "recursive_search_point") < 0)) __PYX_ERR(0, 12, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 8) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 9) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -2497,32 +2526,34 @@ static PyObject *__pyx_pw_9py_kdtree_6cython_7float32_11point_query_1recursive_s
       values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
       values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
       values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
+      values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
     }
     __pyx_v_point = __Pyx_PyObject_to_MemoryviewSlice_dc_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_point.memview)) __PYX_ERR(0, 12, __pyx_L3_error)
     __pyx_v_k = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_k == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 12, __pyx_L3_error)
     __pyx_v_tree = __Pyx_PyObject_to_MemoryviewSlice_d_d_dc_float(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_tree.memview)) __PYX_ERR(0, 12, __pyx_L3_error)
     __pyx_v_n_leaves = __Pyx_PyInt_As_int(values[3]); if (unlikely((__pyx_v_n_leaves == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 12, __pyx_L3_error)
     __pyx_v_n_nodes = __Pyx_PyInt_As_int(values[4]); if (unlikely((__pyx_v_n_nodes == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L3_error)
-    __pyx_v_mmap = __Pyx_PyObject_to_MemoryviewSlice_d_d_dc_float__const__(values[5], 0); if (unlikely(!__pyx_v_mmap.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
-    __pyx_v_indices_view = __Pyx_PyObject_to_MemoryviewSlice_dc_long(values[6], PyBUF_WRITABLE); if (unlikely(!__pyx_v_indices_view.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
-    __pyx_v_distances_view = __Pyx_PyObject_to_MemoryviewSlice_dc_float(values[7], PyBUF_WRITABLE); if (unlikely(!__pyx_v_distances_view.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
+    __pyx_v_stop_leaves = __Pyx_PyInt_As_int(values[5]); if (unlikely((__pyx_v_stop_leaves == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L3_error)
+    __pyx_v_mmap = __Pyx_PyObject_to_MemoryviewSlice_d_d_dc_float__const__(values[6], 0); if (unlikely(!__pyx_v_mmap.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
+    __pyx_v_indices_view = __Pyx_PyObject_to_MemoryviewSlice_dc_long(values[7], PyBUF_WRITABLE); if (unlikely(!__pyx_v_indices_view.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
+    __pyx_v_distances_view = __Pyx_PyObject_to_MemoryviewSlice_dc_float(values[8], PyBUF_WRITABLE); if (unlikely(!__pyx_v_distances_view.memview)) __PYX_ERR(0, 13, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 8, 8, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 12, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("recursive_search_point", 1, 9, 9, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 12, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("py_kdtree.cython.float32.point_query.recursive_search_point", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__pyx_self, __pyx_v_point, __pyx_v_k, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_mmap, __pyx_v_indices_view, __pyx_v_distances_view);
+  __pyx_r = __pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__pyx_self, __pyx_v_point, __pyx_v_k, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_stop_leaves, __pyx_v_mmap, __pyx_v_indices_view, __pyx_v_distances_view);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view) {
+static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, int __pyx_v_stop_leaves, __Pyx_memviewslice __pyx_v_mmap, __Pyx_memviewslice __pyx_v_indices_view, __Pyx_memviewslice __pyx_v_distances_view) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -2536,7 +2567,7 @@ static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_se
   if (unlikely(!__pyx_v_mmap.memview)) { __Pyx_RaiseUnboundLocalError("mmap"); __PYX_ERR(0, 12, __pyx_L1_error) }
   if (unlikely(!__pyx_v_indices_view.memview)) { __Pyx_RaiseUnboundLocalError("indices_view"); __PYX_ERR(0, 12, __pyx_L1_error) }
   if (unlikely(!__pyx_v_distances_view.memview)) { __Pyx_RaiseUnboundLocalError("distances_view"); __PYX_ERR(0, 12, __pyx_L1_error) }
-  __pyx_t_1 = __Pyx_void_to_None(__pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__pyx_v_point, __pyx_v_k, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_mmap, __pyx_v_indices_view, __pyx_v_distances_view, 0)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_f_9py_kdtree_6cython_7float32_11point_query_recursive_search_point(__pyx_v_point, __pyx_v_k, __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_stop_leaves, __pyx_v_mmap, __pyx_v_indices_view, __pyx_v_distances_view, 0)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2558,15 +2589,15 @@ static PyObject *__pyx_pf_9py_kdtree_6cython_7float32_11point_query_recursive_se
   return __pyx_r;
 }
 
-/* "py_kdtree/cython/float32/point_query.pyx":36
+/* "py_kdtree/cython/float32/point_query.pyx":37
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * @cython.cdivision(True)
- * cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,             # <<<<<<<<<<<<<<
- *                           long* indices, float* distances,const float[:,:,::1] mmap) nogil:
+ * cdef (long*,float*,int) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,int stop_leaves,             # <<<<<<<<<<<<<<
+ *                           int leaf_count, long* indices, float* distances,const float[:,:,::1] mmap) nogil:
  *     cdef int l_idx, r_idx,axis,first,second, lf_idx,dist_idx, i,j
  */
 
-static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(int __pyx_v_node_idx, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, int __pyx_v_depth, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, long *__pyx_v_indices, float *__pyx_v_distances, __Pyx_memviewslice __pyx_v_mmap) {
+static __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(int __pyx_v_node_idx, __Pyx_memviewslice __pyx_v_point, int __pyx_v_k, int __pyx_v_depth, __Pyx_memviewslice __pyx_v_tree, int __pyx_v_n_leaves, int __pyx_v_n_nodes, int __pyx_v_stop_leaves, int __pyx_v_leaf_count, long *__pyx_v_indices, float *__pyx_v_distances, __Pyx_memviewslice __pyx_v_mmap) {
   int __pyx_v_l_idx;
   int __pyx_v_r_idx;
   int __pyx_v_axis;
@@ -2582,27 +2613,27 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
   float __pyx_v_dist;
   float __pyx_v_sub;
   float __pyx_v_power;
-  __pyx_ctuple_long__ptr__and_float__ptr __pyx_r;
+  __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_r;
   long __pyx_t_1;
   long __pyx_t_2;
   int __pyx_t_3;
-  int __pyx_t_4;
-  Py_ssize_t __pyx_t_5;
+  __pyx_ctuple_long__ptr__and_float__ptr__and_int __pyx_t_4;
+  int __pyx_t_5;
   Py_ssize_t __pyx_t_6;
-  int __pyx_t_7;
-  Py_ssize_t __pyx_t_8;
+  Py_ssize_t __pyx_t_7;
+  int __pyx_t_8;
   Py_ssize_t __pyx_t_9;
   Py_ssize_t __pyx_t_10;
   Py_ssize_t __pyx_t_11;
   Py_ssize_t __pyx_t_12;
-  int __pyx_t_13;
-  Py_ssize_t __pyx_t_14;
-  __pyx_ctuple_long__ptr__and_float__ptr __pyx_t_15;
+  Py_ssize_t __pyx_t_13;
+  int __pyx_t_14;
+  Py_ssize_t __pyx_t_15;
   long *__pyx_t_16;
   float *__pyx_t_17;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":39
- *                           long* indices, float* distances,const float[:,:,::1] mmap) nogil:
+  /* "py_kdtree/cython/float32/point_query.pyx":40
+ *                           int leaf_count, long* indices, float* distances,const float[:,:,::1] mmap) nogil:
  *     cdef int l_idx, r_idx,axis,first,second, lf_idx,dist_idx, i,j
  *     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2             # <<<<<<<<<<<<<<
  *     cdef float[:,:] l_bound,r_bound
@@ -2614,24 +2645,56 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
   __pyx_v_r_idx = __pyx_t_2;
 
   /* "py_kdtree/cython/float32/point_query.pyx":44
+ *     cdef float median, max_dist,max_dist_sub,dist,sub,power
+ * 
+ *     if leaf_count >= stop_leaves:             # <<<<<<<<<<<<<<
+ *         return indices,distances,leaf_count
+ * 
+ */
+  __pyx_t_3 = ((__pyx_v_leaf_count >= __pyx_v_stop_leaves) != 0);
+  if (__pyx_t_3) {
+
+    /* "py_kdtree/cython/float32/point_query.pyx":45
+ * 
+ *     if leaf_count >= stop_leaves:
+ *         return indices,distances,leaf_count             # <<<<<<<<<<<<<<
+ * 
+ *     ############################## Leaf ##########################################################################
+ */
+    __pyx_t_4.f0 = __pyx_v_indices;
+    __pyx_t_4.f1 = __pyx_v_distances;
+    __pyx_t_4.f2 = __pyx_v_leaf_count;
+    __pyx_r = __pyx_t_4;
+    goto __pyx_L0;
+
+    /* "py_kdtree/cython/float32/point_query.pyx":44
+ *     cdef float median, max_dist,max_dist_sub,dist,sub,power
+ * 
+ *     if leaf_count >= stop_leaves:             # <<<<<<<<<<<<<<
+ *         return indices,distances,leaf_count
+ * 
+ */
+  }
+
+  /* "py_kdtree/cython/float32/point_query.pyx":48
  * 
  *     ############################## Leaf ##########################################################################
  *     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):             # <<<<<<<<<<<<<<
  *         #calculate distance for each contained point and check whether it is smaller than the ones found so far
  *         lf_idx = n_leaves+node_idx-n_nodes
  */
-  __pyx_t_4 = ((__pyx_v_l_idx >= (__pyx_v_tree.shape[0])) != 0);
-  if (__pyx_t_4) {
+  __pyx_t_5 = ((__pyx_v_l_idx >= (__pyx_v_tree.shape[0])) != 0);
+  if (__pyx_t_5) {
   } else {
-    __pyx_t_3 = __pyx_t_4;
-    goto __pyx_L4_bool_binop_done;
+    __pyx_t_3 = __pyx_t_5;
+    goto __pyx_L5_bool_binop_done;
   }
-  __pyx_t_4 = ((__pyx_v_r_idx >= (__pyx_v_tree.shape[0])) != 0);
-  __pyx_t_3 = __pyx_t_4;
-  __pyx_L4_bool_binop_done:;
+  __pyx_t_5 = ((__pyx_v_r_idx >= (__pyx_v_tree.shape[0])) != 0);
+  __pyx_t_3 = __pyx_t_5;
+  __pyx_L5_bool_binop_done:;
   if (__pyx_t_3) {
 
-    /* "py_kdtree/cython/float32/point_query.pyx":46
+    /* "py_kdtree/cython/float32/point_query.pyx":50
  *     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
  *         #calculate distance for each contained point and check whether it is smaller than the ones found so far
  *         lf_idx = n_leaves+node_idx-n_nodes             # <<<<<<<<<<<<<<
@@ -2640,19 +2703,19 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
     __pyx_v_lf_idx = ((__pyx_v_n_leaves + __pyx_v_node_idx) - __pyx_v_n_nodes);
 
-    /* "py_kdtree/cython/float32/point_query.pyx":47
+    /* "py_kdtree/cython/float32/point_query.pyx":51
  *         #calculate distance for each contained point and check whether it is smaller than the ones found so far
  *         lf_idx = n_leaves+node_idx-n_nodes
  *         for j in range(mmap.shape[1]):             # <<<<<<<<<<<<<<
  *             if j == mmap.shape[1]-1:
  *                 if mmap[lf_idx,j,0] == -1.:
  */
-    __pyx_t_5 = (__pyx_v_mmap.shape[1]);
-    __pyx_t_6 = __pyx_t_5;
-    for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
-      __pyx_v_j = __pyx_t_7;
+    __pyx_t_6 = (__pyx_v_mmap.shape[1]);
+    __pyx_t_7 = __pyx_t_6;
+    for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
+      __pyx_v_j = __pyx_t_8;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":48
+      /* "py_kdtree/cython/float32/point_query.pyx":52
  *         lf_idx = n_leaves+node_idx-n_nodes
  *         for j in range(mmap.shape[1]):
  *             if j == mmap.shape[1]-1:             # <<<<<<<<<<<<<<
@@ -2662,29 +2725,29 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
       __pyx_t_3 = ((__pyx_v_j == ((__pyx_v_mmap.shape[1]) - 1)) != 0);
       if (__pyx_t_3) {
 
-        /* "py_kdtree/cython/float32/point_query.pyx":49
+        /* "py_kdtree/cython/float32/point_query.pyx":53
  *         for j in range(mmap.shape[1]):
  *             if j == mmap.shape[1]-1:
  *                 if mmap[lf_idx,j,0] == -1.:             # <<<<<<<<<<<<<<
  *                     continue
  *             dist = 0
  */
-        __pyx_t_8 = __pyx_v_lf_idx;
-        __pyx_t_9 = __pyx_v_j;
-        __pyx_t_10 = 0;
-        __pyx_t_3 = (((*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_8 * __pyx_v_mmap.strides[0]) ) + __pyx_t_9 * __pyx_v_mmap.strides[1]) )) + __pyx_t_10)) ))) == -1.) != 0);
+        __pyx_t_9 = __pyx_v_lf_idx;
+        __pyx_t_10 = __pyx_v_j;
+        __pyx_t_11 = 0;
+        __pyx_t_3 = (((*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_9 * __pyx_v_mmap.strides[0]) ) + __pyx_t_10 * __pyx_v_mmap.strides[1]) )) + __pyx_t_11)) ))) == -1.) != 0);
         if (__pyx_t_3) {
 
-          /* "py_kdtree/cython/float32/point_query.pyx":50
+          /* "py_kdtree/cython/float32/point_query.pyx":54
  *             if j == mmap.shape[1]-1:
  *                 if mmap[lf_idx,j,0] == -1.:
  *                     continue             # <<<<<<<<<<<<<<
  *             dist = 0
  *             for i in range(tree.shape[1]): #dimensionality
  */
-          goto __pyx_L6_continue;
+          goto __pyx_L7_continue;
 
-          /* "py_kdtree/cython/float32/point_query.pyx":49
+          /* "py_kdtree/cython/float32/point_query.pyx":53
  *         for j in range(mmap.shape[1]):
  *             if j == mmap.shape[1]-1:
  *                 if mmap[lf_idx,j,0] == -1.:             # <<<<<<<<<<<<<<
@@ -2693,7 +2756,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
         }
 
-        /* "py_kdtree/cython/float32/point_query.pyx":48
+        /* "py_kdtree/cython/float32/point_query.pyx":52
  *         lf_idx = n_leaves+node_idx-n_nodes
  *         for j in range(mmap.shape[1]):
  *             if j == mmap.shape[1]-1:             # <<<<<<<<<<<<<<
@@ -2702,7 +2765,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       }
 
-      /* "py_kdtree/cython/float32/point_query.pyx":51
+      /* "py_kdtree/cython/float32/point_query.pyx":55
  *                 if mmap[lf_idx,j,0] == -1.:
  *                     continue
  *             dist = 0             # <<<<<<<<<<<<<<
@@ -2711,32 +2774,32 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       __pyx_v_dist = 0.0;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":52
+      /* "py_kdtree/cython/float32/point_query.pyx":56
  *                     continue
  *             dist = 0
  *             for i in range(tree.shape[1]): #dimensionality             # <<<<<<<<<<<<<<
  *                 sub = mmap[lf_idx,j,i+1] - point[i]
  *                 power = sub*sub
  */
-      __pyx_t_11 = (__pyx_v_tree.shape[1]);
-      __pyx_t_12 = __pyx_t_11;
-      for (__pyx_t_13 = 0; __pyx_t_13 < __pyx_t_12; __pyx_t_13+=1) {
-        __pyx_v_i = __pyx_t_13;
+      __pyx_t_12 = (__pyx_v_tree.shape[1]);
+      __pyx_t_13 = __pyx_t_12;
+      for (__pyx_t_14 = 0; __pyx_t_14 < __pyx_t_13; __pyx_t_14+=1) {
+        __pyx_v_i = __pyx_t_14;
 
-        /* "py_kdtree/cython/float32/point_query.pyx":53
+        /* "py_kdtree/cython/float32/point_query.pyx":57
  *             dist = 0
  *             for i in range(tree.shape[1]): #dimensionality
  *                 sub = mmap[lf_idx,j,i+1] - point[i]             # <<<<<<<<<<<<<<
  *                 power = sub*sub
  *                 dist = dist + power
  */
-        __pyx_t_10 = __pyx_v_lf_idx;
-        __pyx_t_9 = __pyx_v_j;
-        __pyx_t_8 = (__pyx_v_i + 1);
-        __pyx_t_14 = __pyx_v_i;
-        __pyx_v_sub = ((*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_10 * __pyx_v_mmap.strides[0]) ) + __pyx_t_9 * __pyx_v_mmap.strides[1]) )) + __pyx_t_8)) ))) - (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_14)) ))));
+        __pyx_t_11 = __pyx_v_lf_idx;
+        __pyx_t_10 = __pyx_v_j;
+        __pyx_t_9 = (__pyx_v_i + 1);
+        __pyx_t_15 = __pyx_v_i;
+        __pyx_v_sub = ((*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_11 * __pyx_v_mmap.strides[0]) ) + __pyx_t_10 * __pyx_v_mmap.strides[1]) )) + __pyx_t_9)) ))) - (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_15)) ))));
 
-        /* "py_kdtree/cython/float32/point_query.pyx":54
+        /* "py_kdtree/cython/float32/point_query.pyx":58
  *             for i in range(tree.shape[1]): #dimensionality
  *                 sub = mmap[lf_idx,j,i+1] - point[i]
  *                 power = sub*sub             # <<<<<<<<<<<<<<
@@ -2745,7 +2808,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
         __pyx_v_power = (__pyx_v_sub * __pyx_v_sub);
 
-        /* "py_kdtree/cython/float32/point_query.pyx":55
+        /* "py_kdtree/cython/float32/point_query.pyx":59
  *                 sub = mmap[lf_idx,j,i+1] - point[i]
  *                 power = sub*sub
  *                 dist = dist + power             # <<<<<<<<<<<<<<
@@ -2755,7 +2818,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
         __pyx_v_dist = (__pyx_v_dist + __pyx_v_power);
       }
 
-      /* "py_kdtree/cython/float32/point_query.pyx":56
+      /* "py_kdtree/cython/float32/point_query.pyx":60
  *                 power = sub*sub
  *                 dist = dist + power
  *             dist = sqrt(dist)             # <<<<<<<<<<<<<<
@@ -2764,7 +2827,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       __pyx_v_dist = sqrt(__pyx_v_dist);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":57
+      /* "py_kdtree/cython/float32/point_query.pyx":61
  *                 dist = dist + power
  *             dist = sqrt(dist)
  *             max_dist = get_max(distances,k)             # <<<<<<<<<<<<<<
@@ -2773,7 +2836,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       __pyx_v_max_dist = __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(__pyx_v_distances, __pyx_v_k);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":58
+      /* "py_kdtree/cython/float32/point_query.pyx":62
  *             dist = sqrt(dist)
  *             max_dist = get_max(distances,k)
  *             if dist < max_dist:             # <<<<<<<<<<<<<<
@@ -2783,7 +2846,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
       __pyx_t_3 = ((__pyx_v_dist < __pyx_v_max_dist) != 0);
       if (__pyx_t_3) {
 
-        /* "py_kdtree/cython/float32/point_query.pyx":59
+        /* "py_kdtree/cython/float32/point_query.pyx":63
  *             max_dist = get_max(distances,k)
  *             if dist < max_dist:
  *                 dist_idx = get_max_idx(distances,k)             # <<<<<<<<<<<<<<
@@ -2792,28 +2855,28 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
         __pyx_v_dist_idx = __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(__pyx_v_distances, __pyx_v_k);
 
-        /* "py_kdtree/cython/float32/point_query.pyx":60
+        /* "py_kdtree/cython/float32/point_query.pyx":64
  *             if dist < max_dist:
  *                 dist_idx = get_max_idx(distances,k)
  *                 distances[dist_idx] = dist             # <<<<<<<<<<<<<<
  *                 indices[dist_idx] = int(mmap[lf_idx,j,0])
- *         return indices,distances
+ *         leaf_count += 1
  */
         (__pyx_v_distances[__pyx_v_dist_idx]) = __pyx_v_dist;
 
-        /* "py_kdtree/cython/float32/point_query.pyx":61
+        /* "py_kdtree/cython/float32/point_query.pyx":65
  *                 dist_idx = get_max_idx(distances,k)
  *                 distances[dist_idx] = dist
  *                 indices[dist_idx] = int(mmap[lf_idx,j,0])             # <<<<<<<<<<<<<<
- *         return indices,distances
- *     else:
+ *         leaf_count += 1
+ *         return indices,distances,leaf_count
  */
-        __pyx_t_14 = __pyx_v_lf_idx;
-        __pyx_t_8 = __pyx_v_j;
-        __pyx_t_9 = 0;
-        (__pyx_v_indices[__pyx_v_dist_idx]) = ((long)(*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_14 * __pyx_v_mmap.strides[0]) ) + __pyx_t_8 * __pyx_v_mmap.strides[1]) )) + __pyx_t_9)) ))));
+        __pyx_t_15 = __pyx_v_lf_idx;
+        __pyx_t_9 = __pyx_v_j;
+        __pyx_t_10 = 0;
+        (__pyx_v_indices[__pyx_v_dist_idx]) = ((long)(*((float const  *) ( /* dim=2 */ ((char *) (((float const  *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_mmap.data + __pyx_t_15 * __pyx_v_mmap.strides[0]) ) + __pyx_t_9 * __pyx_v_mmap.strides[1]) )) + __pyx_t_10)) ))));
 
-        /* "py_kdtree/cython/float32/point_query.pyx":58
+        /* "py_kdtree/cython/float32/point_query.pyx":62
  *             dist = sqrt(dist)
  *             max_dist = get_max(distances,k)
  *             if dist < max_dist:             # <<<<<<<<<<<<<<
@@ -2821,22 +2884,32 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  *                 distances[dist_idx] = dist
  */
       }
-      __pyx_L6_continue:;
+      __pyx_L7_continue:;
     }
 
-    /* "py_kdtree/cython/float32/point_query.pyx":62
+    /* "py_kdtree/cython/float32/point_query.pyx":66
  *                 distances[dist_idx] = dist
  *                 indices[dist_idx] = int(mmap[lf_idx,j,0])
- *         return indices,distances             # <<<<<<<<<<<<<<
+ *         leaf_count += 1             # <<<<<<<<<<<<<<
+ *         return indices,distances,leaf_count
+ *     else:
+ */
+    __pyx_v_leaf_count = (__pyx_v_leaf_count + 1);
+
+    /* "py_kdtree/cython/float32/point_query.pyx":67
+ *                 indices[dist_idx] = int(mmap[lf_idx,j,0])
+ *         leaf_count += 1
+ *         return indices,distances,leaf_count             # <<<<<<<<<<<<<<
  *     else:
  *         axis = depth % tree.shape[1]
  */
-    __pyx_t_15.f0 = __pyx_v_indices;
-    __pyx_t_15.f1 = __pyx_v_distances;
-    __pyx_r = __pyx_t_15;
+    __pyx_t_4.f0 = __pyx_v_indices;
+    __pyx_t_4.f1 = __pyx_v_distances;
+    __pyx_t_4.f2 = __pyx_v_leaf_count;
+    __pyx_r = __pyx_t_4;
     goto __pyx_L0;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":44
+    /* "py_kdtree/cython/float32/point_query.pyx":48
  * 
  *     ############################## Leaf ##########################################################################
  *     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):             # <<<<<<<<<<<<<<
@@ -2845,8 +2918,8 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
   }
 
-  /* "py_kdtree/cython/float32/point_query.pyx":64
- *         return indices,distances
+  /* "py_kdtree/cython/float32/point_query.pyx":69
+ *         return indices,distances,leaf_count
  *     else:
  *         axis = depth % tree.shape[1]             # <<<<<<<<<<<<<<
  * 
@@ -2855,30 +2928,30 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
   /*else*/ {
     __pyx_v_axis = (__pyx_v_depth % (__pyx_v_tree.shape[1]));
 
-    /* "py_kdtree/cython/float32/point_query.pyx":66
+    /* "py_kdtree/cython/float32/point_query.pyx":71
  *         axis = depth % tree.shape[1]
  * 
  *         median = tree[l_idx][axis][1]             # <<<<<<<<<<<<<<
  *         if point[axis] < median:
  *             first = l_idx
  */
-    __pyx_t_9 = __pyx_v_l_idx;
-    __pyx_t_8 = __pyx_v_axis;
-    __pyx_t_14 = 1;
-    __pyx_v_median = (*((float *) ( /* dim=2 */ ((char *) (((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_tree.data + __pyx_t_9 * __pyx_v_tree.strides[0]) ) + __pyx_t_8 * __pyx_v_tree.strides[1]) )) + __pyx_t_14)) )));
+    __pyx_t_10 = __pyx_v_l_idx;
+    __pyx_t_9 = __pyx_v_axis;
+    __pyx_t_15 = 1;
+    __pyx_v_median = (*((float *) ( /* dim=2 */ ((char *) (((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_tree.data + __pyx_t_10 * __pyx_v_tree.strides[0]) ) + __pyx_t_9 * __pyx_v_tree.strides[1]) )) + __pyx_t_15)) )));
 
-    /* "py_kdtree/cython/float32/point_query.pyx":67
+    /* "py_kdtree/cython/float32/point_query.pyx":72
  * 
  *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:             # <<<<<<<<<<<<<<
  *             first = l_idx
  *             second = r_idx
  */
-    __pyx_t_14 = __pyx_v_axis;
-    __pyx_t_3 = (((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_14)) ))) < __pyx_v_median) != 0);
+    __pyx_t_15 = __pyx_v_axis;
+    __pyx_t_3 = (((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_15)) ))) < __pyx_v_median) != 0);
     if (__pyx_t_3) {
 
-      /* "py_kdtree/cython/float32/point_query.pyx":68
+      /* "py_kdtree/cython/float32/point_query.pyx":73
  *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:
  *             first = l_idx             # <<<<<<<<<<<<<<
@@ -2887,7 +2960,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       __pyx_v_first = __pyx_v_l_idx;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":69
+      /* "py_kdtree/cython/float32/point_query.pyx":74
  *         if point[axis] < median:
  *             first = l_idx
  *             second = r_idx             # <<<<<<<<<<<<<<
@@ -2896,119 +2969,124 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
  */
       __pyx_v_second = __pyx_v_r_idx;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":67
+      /* "py_kdtree/cython/float32/point_query.pyx":72
  * 
  *         median = tree[l_idx][axis][1]
  *         if point[axis] < median:             # <<<<<<<<<<<<<<
  *             first = l_idx
  *             second = r_idx
  */
-      goto __pyx_L13;
+      goto __pyx_L14;
     }
 
-    /* "py_kdtree/cython/float32/point_query.pyx":71
+    /* "py_kdtree/cython/float32/point_query.pyx":76
  *             second = r_idx
  *         else:
  *             first = r_idx             # <<<<<<<<<<<<<<
  *             second = l_idx
- *         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *         indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  */
     /*else*/ {
       __pyx_v_first = __pyx_v_r_idx;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":72
+      /* "py_kdtree/cython/float32/point_query.pyx":77
  *         else:
  *             first = r_idx
  *             second = l_idx             # <<<<<<<<<<<<<<
- *         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *         indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  *         max_dist = get_max(distances,k)
  */
       __pyx_v_second = __pyx_v_l_idx;
     }
-    __pyx_L13:;
+    __pyx_L14:;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":73
+    /* "py_kdtree/cython/float32/point_query.pyx":78
  *             first = r_idx
  *             second = l_idx
- *         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)             # <<<<<<<<<<<<<<
+ *         indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)             # <<<<<<<<<<<<<<
  *         max_dist = get_max(distances,k)
  *         max_dist_sub = fabs(median - point[axis])
  */
-    __pyx_t_15 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(__pyx_v_first, __pyx_v_point, __pyx_v_k, (__pyx_v_depth + 1), __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
-    __pyx_t_16 = __pyx_t_15.f0;
-    __pyx_t_17 = __pyx_t_15.f1;
+    __pyx_t_4 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(__pyx_v_first, __pyx_v_point, __pyx_v_k, (__pyx_v_depth + 1), __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_stop_leaves, __pyx_v_leaf_count, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
+    __pyx_t_16 = __pyx_t_4.f0;
+    __pyx_t_17 = __pyx_t_4.f1;
+    __pyx_t_8 = __pyx_t_4.f2;
     __pyx_v_indices = __pyx_t_16;
     __pyx_v_distances = __pyx_t_17;
+    __pyx_v_leaf_count = __pyx_t_8;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":74
+    /* "py_kdtree/cython/float32/point_query.pyx":79
  *             second = l_idx
- *         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *         indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  *         max_dist = get_max(distances,k)             # <<<<<<<<<<<<<<
  *         max_dist_sub = fabs(median - point[axis])
  *         if max_dist_sub < max_dist:
  */
     __pyx_v_max_dist = __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(__pyx_v_distances, __pyx_v_k);
 
-    /* "py_kdtree/cython/float32/point_query.pyx":75
- *         indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+    /* "py_kdtree/cython/float32/point_query.pyx":80
+ *         indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  *         max_dist = get_max(distances,k)
  *         max_dist_sub = fabs(median - point[axis])             # <<<<<<<<<<<<<<
  *         if max_dist_sub < max_dist:
- *             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+ *             indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
  */
-    __pyx_t_14 = __pyx_v_axis;
-    __pyx_v_max_dist_sub = fabs((__pyx_v_median - (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_14)) )))));
+    __pyx_t_15 = __pyx_v_axis;
+    __pyx_v_max_dist_sub = fabs((__pyx_v_median - (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_point.data) + __pyx_t_15)) )))));
 
-    /* "py_kdtree/cython/float32/point_query.pyx":76
+    /* "py_kdtree/cython/float32/point_query.pyx":81
  *         max_dist = get_max(distances,k)
  *         max_dist_sub = fabs(median - point[axis])
  *         if max_dist_sub < max_dist:             # <<<<<<<<<<<<<<
- *             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
- *         return indices,distances
+ *             indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
+ *         return indices,distances,leaf_count
  */
     __pyx_t_3 = ((__pyx_v_max_dist_sub < __pyx_v_max_dist) != 0);
     if (__pyx_t_3) {
 
-      /* "py_kdtree/cython/float32/point_query.pyx":77
+      /* "py_kdtree/cython/float32/point_query.pyx":82
  *         max_dist_sub = fabs(median - point[axis])
  *         if max_dist_sub < max_dist:
- *             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)             # <<<<<<<<<<<<<<
- *         return indices,distances
+ *             indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)             # <<<<<<<<<<<<<<
+ *         return indices,distances,leaf_count
  * 
  */
-      __pyx_t_15 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(__pyx_v_second, __pyx_v_point, __pyx_v_k, (__pyx_v_depth + 1), __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
-      __pyx_t_16 = __pyx_t_15.f0;
-      __pyx_t_17 = __pyx_t_15.f1;
+      __pyx_t_4 = __pyx_f_9py_kdtree_6cython_7float32_11point_query__recursive_search_point(__pyx_v_second, __pyx_v_point, __pyx_v_k, (__pyx_v_depth + 1), __pyx_v_tree, __pyx_v_n_leaves, __pyx_v_n_nodes, __pyx_v_stop_leaves, __pyx_v_leaf_count, __pyx_v_indices, __pyx_v_distances, __pyx_v_mmap);
+      __pyx_t_16 = __pyx_t_4.f0;
+      __pyx_t_17 = __pyx_t_4.f1;
+      __pyx_t_8 = __pyx_t_4.f2;
       __pyx_v_indices = __pyx_t_16;
       __pyx_v_distances = __pyx_t_17;
+      __pyx_v_leaf_count = __pyx_t_8;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":76
+      /* "py_kdtree/cython/float32/point_query.pyx":81
  *         max_dist = get_max(distances,k)
  *         max_dist_sub = fabs(median - point[axis])
  *         if max_dist_sub < max_dist:             # <<<<<<<<<<<<<<
- *             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
- *         return indices,distances
+ *             indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
+ *         return indices,distances,leaf_count
  */
     }
 
-    /* "py_kdtree/cython/float32/point_query.pyx":78
+    /* "py_kdtree/cython/float32/point_query.pyx":83
  *         if max_dist_sub < max_dist:
- *             indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
- *         return indices,distances             # <<<<<<<<<<<<<<
+ *             indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
+ *         return indices,distances,leaf_count             # <<<<<<<<<<<<<<
  * 
  * 
  */
-    __pyx_t_15.f0 = __pyx_v_indices;
-    __pyx_t_15.f1 = __pyx_v_distances;
-    __pyx_r = __pyx_t_15;
+    __pyx_t_4.f0 = __pyx_v_indices;
+    __pyx_t_4.f1 = __pyx_v_distances;
+    __pyx_t_4.f2 = __pyx_v_leaf_count;
+    __pyx_r = __pyx_t_4;
     goto __pyx_L0;
   }
 
-  /* "py_kdtree/cython/float32/point_query.pyx":36
+  /* "py_kdtree/cython/float32/point_query.pyx":37
  * @cython.wraparound(False)  # turn off negative index wrapping for entire function
  * @cython.cdivision(True)
- * cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,             # <<<<<<<<<<<<<<
- *                           long* indices, float* distances,const float[:,:,::1] mmap) nogil:
+ * cdef (long*,float*,int) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,int stop_leaves,             # <<<<<<<<<<<<<<
+ *                           int leaf_count, long* indices, float* distances,const float[:,:,::1] mmap) nogil:
  *     cdef int l_idx, r_idx,axis,first,second, lf_idx,dist_idx, i,j
  */
 
@@ -3017,7 +3095,7 @@ static __pyx_ctuple_long__ptr__and_float__ptr __pyx_f_9py_kdtree_6cython_7float3
   return __pyx_r;
 }
 
-/* "py_kdtree/cython/float32/point_query.pyx":83
+/* "py_kdtree/cython/float32/point_query.pyx":88
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef float get_max(float* array,int size) nogil:             # <<<<<<<<<<<<<<
@@ -3034,7 +3112,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
   int __pyx_t_3;
   int __pyx_t_4;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":85
+  /* "py_kdtree/cython/float32/point_query.pyx":90
  * cdef float get_max(float* array,int size) nogil:
  *     cdef int i
  *     cdef float MAX = -INFINITY             # <<<<<<<<<<<<<<
@@ -3043,7 +3121,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
  */
   __pyx_v_MAX = (-INFINITY);
 
-  /* "py_kdtree/cython/float32/point_query.pyx":86
+  /* "py_kdtree/cython/float32/point_query.pyx":91
  *     cdef int i
  *     cdef float MAX = -INFINITY
  *     for i in range(size):             # <<<<<<<<<<<<<<
@@ -3055,7 +3133,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":87
+    /* "py_kdtree/cython/float32/point_query.pyx":92
  *     cdef float MAX = -INFINITY
  *     for i in range(size):
  *         if array[i] > MAX:             # <<<<<<<<<<<<<<
@@ -3065,7 +3143,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
     __pyx_t_4 = (((__pyx_v_array[__pyx_v_i]) > __pyx_v_MAX) != 0);
     if (__pyx_t_4) {
 
-      /* "py_kdtree/cython/float32/point_query.pyx":88
+      /* "py_kdtree/cython/float32/point_query.pyx":93
  *     for i in range(size):
  *         if array[i] > MAX:
  *             MAX = array[i]             # <<<<<<<<<<<<<<
@@ -3074,7 +3152,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
  */
       __pyx_v_MAX = (__pyx_v_array[__pyx_v_i]);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":87
+      /* "py_kdtree/cython/float32/point_query.pyx":92
  *     cdef float MAX = -INFINITY
  *     for i in range(size):
  *         if array[i] > MAX:             # <<<<<<<<<<<<<<
@@ -3084,7 +3162,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
     }
   }
 
-  /* "py_kdtree/cython/float32/point_query.pyx":89
+  /* "py_kdtree/cython/float32/point_query.pyx":94
  *         if array[i] > MAX:
  *             MAX = array[i]
  *     return MAX             # <<<<<<<<<<<<<<
@@ -3094,7 +3172,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
   __pyx_r = __pyx_v_MAX;
   goto __pyx_L0;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":83
+  /* "py_kdtree/cython/float32/point_query.pyx":88
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef float get_max(float* array,int size) nogil:             # <<<<<<<<<<<<<<
@@ -3107,7 +3185,7 @@ static float __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max(float *__
   return __pyx_r;
 }
 
-/* "py_kdtree/cython/float32/point_query.pyx":93
+/* "py_kdtree/cython/float32/point_query.pyx":98
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef int get_max_idx(float* array,int size) nogil:             # <<<<<<<<<<<<<<
@@ -3125,7 +3203,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
   int __pyx_t_3;
   int __pyx_t_4;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":95
+  /* "py_kdtree/cython/float32/point_query.pyx":100
  * cdef int get_max_idx(float* array,int size) nogil:
  *     cdef int i
  *     cdef float MAX = -INFINITY             # <<<<<<<<<<<<<<
@@ -3134,7 +3212,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
  */
   __pyx_v_MAX = (-INFINITY);
 
-  /* "py_kdtree/cython/float32/point_query.pyx":97
+  /* "py_kdtree/cython/float32/point_query.pyx":102
  *     cdef float MAX = -INFINITY
  *     cdef int idx
  *     for i in range(size):             # <<<<<<<<<<<<<<
@@ -3146,7 +3224,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "py_kdtree/cython/float32/point_query.pyx":98
+    /* "py_kdtree/cython/float32/point_query.pyx":103
  *     cdef int idx
  *     for i in range(size):
  *         if array[i] > MAX:             # <<<<<<<<<<<<<<
@@ -3156,7 +3234,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
     __pyx_t_4 = (((__pyx_v_array[__pyx_v_i]) > __pyx_v_MAX) != 0);
     if (__pyx_t_4) {
 
-      /* "py_kdtree/cython/float32/point_query.pyx":99
+      /* "py_kdtree/cython/float32/point_query.pyx":104
  *     for i in range(size):
  *         if array[i] > MAX:
  *             MAX = array[i]             # <<<<<<<<<<<<<<
@@ -3165,7 +3243,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
  */
       __pyx_v_MAX = (__pyx_v_array[__pyx_v_i]);
 
-      /* "py_kdtree/cython/float32/point_query.pyx":100
+      /* "py_kdtree/cython/float32/point_query.pyx":105
  *         if array[i] > MAX:
  *             MAX = array[i]
  *             idx = i             # <<<<<<<<<<<<<<
@@ -3174,7 +3252,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
  */
       __pyx_v_idx = __pyx_v_i;
 
-      /* "py_kdtree/cython/float32/point_query.pyx":98
+      /* "py_kdtree/cython/float32/point_query.pyx":103
  *     cdef int idx
  *     for i in range(size):
  *         if array[i] > MAX:             # <<<<<<<<<<<<<<
@@ -3184,7 +3262,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
     }
   }
 
-  /* "py_kdtree/cython/float32/point_query.pyx":101
+  /* "py_kdtree/cython/float32/point_query.pyx":106
  *             MAX = array[i]
  *             idx = i
  *     return idx             # <<<<<<<<<<<<<<
@@ -3194,7 +3272,7 @@ static int __pyx_f_9py_kdtree_6cython_7float32_11point_query_get_max_idx(float *
   __pyx_r = __pyx_v_idx;
   goto __pyx_L0;
 
-  /* "py_kdtree/cython/float32/point_query.pyx":93
+  /* "py_kdtree/cython/float32/point_query.pyx":98
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef int get_max_idx(float* array,int size) nogil:             # <<<<<<<<<<<<<<
@@ -17105,6 +17183,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_start, __pyx_k_start, sizeof(__pyx_k_start), 0, 0, 1, 1},
   {&__pyx_n_s_step, __pyx_k_step, sizeof(__pyx_k_step), 0, 0, 1, 1},
   {&__pyx_n_s_stop, __pyx_k_stop, sizeof(__pyx_k_stop), 0, 0, 1, 1},
+  {&__pyx_n_s_stop_leaves, __pyx_k_stop_leaves, sizeof(__pyx_k_stop_leaves), 0, 0, 1, 1},
   {&__pyx_kp_s_strided_and_direct, __pyx_k_strided_and_direct, sizeof(__pyx_k_strided_and_direct), 0, 0, 1, 0},
   {&__pyx_kp_s_strided_and_direct_or_indirect, __pyx_k_strided_and_direct_or_indirect, sizeof(__pyx_k_strided_and_direct_or_indirect), 0, 0, 1, 0},
   {&__pyx_kp_s_strided_and_indirect, __pyx_k_strided_and_indirect, sizeof(__pyx_k_strided_and_indirect), 0, 0, 1, 0},
@@ -17119,7 +17198,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 22, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 134, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 149, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(1, 152, __pyx_L1_error)

@@ -9,9 +9,10 @@ cdef extern from "math.h":
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-cpdef void recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,
-                    int n_nodes,const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):    
+cpdef int recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,int n_leaves,
+                    int n_nodes,int stop_leaves, const float[:,:,::1] mmap,long[::1] indices_view,float[::1] distances_view):    
     cdef int i
+    cdef int leaf_count = 0
     cdef long depth = 0 
     cdef long* indices = <long*> malloc(k * sizeof(long))
     cdef float* distances =   <float*> malloc(k * sizeof(float))
@@ -21,11 +22,11 @@ cpdef void recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,in
         for i in range(k):
             distances[i] = INFINITY
 
-        indices,distances = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,indices,distances,mmap)
+        indices,distances,leaf_count = _recursive_search_point(0,point,k,depth,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
         for i in range(k):
             indices_view[i] = indices[i]
             distances_view[i] = distances[i]
-        return 
+        return leaf_count
     finally:
         free(indices)   
         free(distances)
@@ -33,12 +34,15 @@ cpdef void recursive_search_point(float[::1] point,int k, float[:,:,::1] tree,in
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.cdivision(True)
-cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,
-                          long* indices, float* distances,const float[:,:,::1] mmap) nogil:
+cdef (long*,float*,int) _recursive_search_point(int node_idx,float[::1] point,int k, int depth, float[:,:,::1] tree,int n_leaves, int n_nodes,int stop_leaves,
+                          int leaf_count, long* indices, float* distances,const float[:,:,::1] mmap) nogil:
     cdef int l_idx, r_idx,axis,first,second, lf_idx,dist_idx, i,j
     l_idx,r_idx = (2*node_idx)+1, (2*node_idx)+2
     cdef float[:,:] l_bound,r_bound
     cdef float median, max_dist,max_dist_sub,dist,sub,power
+
+    if leaf_count >= stop_leaves:
+        return indices,distances,leaf_count
 
     ############################## Leaf ##########################################################################
     if (l_idx >= tree.shape[0]) and (r_idx >= tree.shape[0]):
@@ -59,7 +63,8 @@ cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k,
                 dist_idx = get_max_idx(distances,k)
                 distances[dist_idx] = dist
                 indices[dist_idx] = int(mmap[lf_idx,j,0])
-        return indices,distances
+        leaf_count += 1
+        return indices,distances,leaf_count
     else:  
         axis = depth % tree.shape[1]
 
@@ -70,12 +75,12 @@ cdef (long*,float*) _recursive_search_point(int node_idx,float[::1] point,int k,
         else:
             first = r_idx
             second = l_idx
-        indices,distances = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
+        indices,distances,leaf_count = _recursive_search_point(first,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
         max_dist = get_max(distances,k)
         max_dist_sub = fabs(median - point[axis])
         if max_dist_sub < max_dist:
-            indices,distances = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,indices,distances,mmap)
-        return indices,distances
+            indices,distances,leaf_count = _recursive_search_point(second,point,k,depth+1,tree,n_leaves,n_nodes,stop_leaves,leaf_count,indices,distances,mmap)
+        return indices,distances,leaf_count
 
 
 @cython.boundscheck(False) 

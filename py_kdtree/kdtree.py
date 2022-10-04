@@ -79,7 +79,7 @@ class KDTree():
         else:
             I = np.arange(len(X),dtype="int64")
 
-
+        
         self.depth = self._calc_depth(len(X))
         #update the leaf size with the actual value
         self.leaf_size = int(np.ceil(len(X) / 2**self.depth))
@@ -89,7 +89,8 @@ class KDTree():
         self.mmap_shape = (self.n_leaves,self.leaf_size,self._dim+1)
 
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
-
+        
+        print("Total Depth: ",self.depth)
         start = time.time()
         if mmap_idxs is None:
             self._build_tree(X, I,mmap)
@@ -183,7 +184,7 @@ class KDTree():
         mmap._mmap.close()
         return indices.base,end-start,arr_loaded[0]
 
-    def query_point_cy(self,point,k=5):
+    def query_point_cy(self,point,k=5,stop_leaves=None):
         if self.tree is None:  
             raise Exception("Tree not fitted yet!")
 
@@ -192,15 +193,21 @@ class KDTree():
         else:
             mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='r', shape=self.mmap_shape)
 
+        if stop_leaves is None:
+            stop_leaves = 2**self.depth
+        else:
+            if k > self.leaf_size * stop_leaves:
+                raise Exception("k is larger than the number of points visited! Adjust k or stop_leaves!")
+
         start = time.time()
 
         indices = np.empty(k,dtype=np.int64)
         distances = np.empty(k,dtype=self.dtype)
 
         if self.dtype == "float32":
-            search_point_32(point,k,self.tree,self.n_leaves,self.n_nodes,mmap,indices,distances)
+            leaves_visited = search_point_32(point,k,self.tree,self.n_leaves,self.n_nodes,stop_leaves,mmap,indices,distances)
         elif self.dtype == "float64":
-            search_point_64(point,k,self.tree,self.n_leaves,self.n_nodes,mmap,indices,distances)
+            leaves_visited = search_point_64(point,k,self.tree,self.n_leaves,self.n_nodes,stop_leaves,mmap,indices,distances)
 
         order = np.argsort(distances)
         indices = indices[order]
@@ -208,8 +215,9 @@ class KDTree():
         end = time.time()
         if self.verbose:
             print(f"INFO: Query search took: {end-start} seconds")
+            print(f"INFO: Query visited {leaves_visited} leaves")
 
-        return indices,distances,end-start
+        return indices,distances,end-start,leaves_visited
 
     def query_point(self,point,k=5):
         if self.tree is None:  
@@ -267,6 +275,7 @@ class KDTree():
         #     pts_ax = pts_ax.astype(self.dtype)
         part = pts_ax.argsort()
         indices = indices[part]
+        pts = pts[part]
         pts_ax = pts_ax[part]
 
         midx = math.floor(len(pts)/2)
@@ -288,11 +297,14 @@ class KDTree():
             #if root
         if idx == 0: 
             self.tree[idx] = np.array([[-np.inf,np.inf]]*self._dim,dtype=self.dtype)
+        else:
+            indices.sort() #important for contiguous read
 
         bounds = self.tree[idx]
 
+        print("Depth: ",depth)
+
         if len(indices) <= self.leaf_size:
-            #Load into memory
             pts_sub = pts[indices,:][:,pts_mmap_idxs]
             pts = np.c_[indices,pts_sub]
 
@@ -311,10 +323,18 @@ class KDTree():
         axis = depth % self._dim
         pts_axis = pts_mmap_idxs[axis]
         
+        print("Load start")
         #Load into memory
-        pts_ax = pts[indices,pts_axis]
+        if pts.flags["C_CONTIGUOUS"]:
+            pts_ax = self._load_col_from_mmap(pts,indices,pts_axis)
+        elif pts.flags["F_CONTIGUOUS"]:
+            pts_ax = pts[:,pts_axis]
+            pts_ax = pts_ax[indices]
+        print("Load finished")
 
+        print("Sort start")
         part = pts_ax.argsort()
+        print("Sort finished")
         indices = indices[part]
         pts_ax = pts_ax[part]
 
@@ -331,6 +351,7 @@ class KDTree():
         self.tree[r_idx] = r_bounds
 
         del pts_ax
+        del part
 
         self._build_tree_mmap(pts, indices[:midx],mmap,pts_mmap_idxs, depth+1,l_idx)
         self._build_tree_mmap(pts, indices[midx:],mmap,pts_mmap_idxs, depth+1,r_idx)
@@ -451,10 +472,22 @@ class KDTree():
     @staticmethod
     def _get_child_idx(i):
         return (2*i)+1, (2*i)+2
+    
+    @staticmethod
+    def _load_col_from_mmap(mmap,idxs,axis,chunksize=2048,verbose=True):
+        pts = np.zeros(len(idxs),dtype=mmap.dtype)
+        idx = 0
 
+        while idx < len(idxs):
+            chunk = idxs[idx:idx+chunksize]
+            pts[idx:idx+chunksize] = mmap[chunk,axis]
+            idx += chunksize
+        
+            if verbose:
+                if (idx % chunksize**2) == 0:
+                    print(idx)
 
-
-
+        return pts
 
 
         

@@ -57,7 +57,7 @@ class KDTreeSet():
     '''
     Function for creating set of k-d tree indices where X can fit into memory.
     '''
-    def fit(self,X):    
+    def fit(self,X,mmap=False):    
         for i in self.indexes:
             dname = "_".join([self.group_prefix + str(j) for j in i])
             if self.trees[dname].tree is not None:
@@ -66,7 +66,10 @@ class KDTreeSet():
             else:
                 if self.verbose:
                     print(f"INFO: model {dname} is trained")
-                self.trees[dname].fit(X[:,i])
+                if not mmap:
+                    self.trees[dname].fit(X[:,i])
+                else:
+                    self.trees[dname].fit(X,mmap_idxs=i)
 
     '''
     Function for creating set of k-d tree indices where X cannot fit into memory and therefore needs to be loaded
