@@ -90,7 +90,6 @@ class KDTree():
 
         mmap = np.memmap(self.mmap_file, dtype=self.dtype, mode='w+', shape=self.mmap_shape)
         
-        print("Total Depth: ",self.depth)
         start = time.time()
         if mmap_idxs is None:
             self._build_tree(X, I,mmap)
@@ -181,7 +180,8 @@ class KDTree():
             print(f"INFO: Query took: {end-start} seconds")
             print(f"INFO: Query loaded leaves: {arr_loaded[0]}")
 
-        mmap._mmap.close()
+        if not self.inmemory:
+            mmap._mmap.close()
         return indices.base,end-start,arr_loaded[0]
 
     def query_point_cy(self,point,k=5,stop_leaves=None):
@@ -290,6 +290,8 @@ class KDTree():
         self.tree[l_idx] = l_bounds
         self.tree[r_idx] = r_bounds
 
+        del pts_ax
+        del part
         self._build_tree(pts[:midx,:], indices[:midx],mmap, depth+1,l_idx)
         self._build_tree(pts[midx:,:], indices[midx:],mmap, depth+1,r_idx)
 
